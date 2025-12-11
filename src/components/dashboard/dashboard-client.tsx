@@ -22,6 +22,8 @@ import { exportToCsv } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useLocale } from '@/hooks/use-locale';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AISuggestions } from './ai-suggestions';
+import { generatePersonalizedSavingsTips } from '@/ai/flows/generate-personalized-savings-tips';
 
 
 export function DashboardClient() {
@@ -33,6 +35,8 @@ export function DashboardClient() {
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
   const [isBudgetDialogOpen, setIsBudgetDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [suggestions, setSuggestions] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []); // YYYY-MM
 
@@ -107,6 +111,27 @@ export function DashboardClient() {
     exportToCsv(`smart-expense-${currentMonth}.csv`, dataToExport);
   }, [monthlyExpenses, currentMonth, toast, t]);
 
+  const handleGenerateSuggestions = async () => {
+    setIsGenerating(true);
+    try {
+        const result = await generatePersonalizedSavingsTips({
+            budget: budget!,
+            expenses: monthlyExpenses,
+            locale: locale,
+        });
+        setSuggestions(result);
+    } catch (error) {
+        console.error(error);
+        toast({
+            variant: 'destructive',
+            title: t.anErrorOccurred,
+            description: "Failed to generate AI suggestions."
+        })
+    } finally {
+        setIsGenerating(false);
+    }
+  };
+
   if (loading) {
     return <div className="flex flex-1 items-center justify-center"><Loader className="h-10 w-10"/></div>
   }
@@ -116,6 +141,8 @@ export function DashboardClient() {
       <Plus className="mr-2 h-4 w-4" /> {t.addExpense}
     </Button>
   );
+
+  const canGenerate = !!budget && monthlyExpenses && monthlyExpenses.length > 0;
 
   return (
     <>
@@ -147,11 +174,19 @@ export function DashboardClient() {
         </div>
       </div>
 
-      <div className="flex-1 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <StatsCards totalSpent={totalSpent} remainingBudget={remainingBudget} budgetLimit={budget?.limit} />
+      <div className="flex-1 grid gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <StatsCards totalSpent={totalSpent} remainingBudget={remainingBudget} budgetLimit={budget?.limit} />
+        </div>
         
-        <div className="md:col-span-2 lg:col-span-1">
-          <CategoryChart data={expensesByCategory} />
+        <div className="grid md:grid-cols-2 gap-6">
+            <CategoryChart data={expensesByCategory} />
+            <AISuggestions 
+              suggestions={suggestions} 
+              isLoading={isGenerating} 
+              onGenerate={handleGenerateSuggestions}
+              canGenerate={canGenerate}
+            />
         </div>
         
         <div className="md:col-span-2 lg:col-span-3">

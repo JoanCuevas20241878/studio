@@ -44,7 +44,7 @@ export function CategoryChart({ data }: CategoryChartProps) {
       </CardHeader>
       <CardContent>
         {chartData.length > 0 ? (
-          <div className="w-full h-[250px]">
+          <div className="w-full h-[300px]">
             <ResponsiveContainer>
               <PieChart>
                 <Pie
@@ -68,7 +68,7 @@ export function CategoryChart({ data }: CategoryChartProps) {
             </ResponsiveContainer>
           </div>
         ) : (
-          <div className="flex h-[250px] flex-col items-center justify-center text-center">
+          <div className="flex h-[300px] flex-col items-center justify-center text-center">
             <p className="text-lg font-medium">{t.noExpensesYet}</p>
             <p className="text-sm text-muted-foreground">{t.addExpensesToSeeBreakdown}</p>
           </div>
