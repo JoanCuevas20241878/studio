@@ -46,12 +46,17 @@ export async function extractExpenseFromImage(
   input: ExtractExpenseFromImageInput
 ): Promise<ExtractExpenseFromImageOutput> {
   const dataUri = await fileToDataUri(input.receipt);
-  return extractExpenseFromImageFlow(dataUri);
+  return extractExpenseFromImageFlow({ dataUri, contentType: input.receipt.type });
 }
+
+const flowInputSchema = z.object({
+    dataUri: z.string(),
+    contentType: z.string(),
+});
 
 const prompt = ai.definePrompt({
   name: 'extractExpenseFromImagePrompt',
-  input: {schema: z.string()},
+  input: {schema: flowInputSchema},
   output: {schema: ExtractExpenseFromImageOutputSchema},
   prompt: `You are an expert receipt reader. Analyze the receipt image provided and extract the following information:
 - The total amount of the expense.
@@ -59,7 +64,7 @@ const prompt = ai.definePrompt({
 - A brief note, which should be the merchant's name.
 - A suggested expense category from the following options: Food, Transport, Clothing, Home, Other.
 
-Receipt Image: {{media url=input}}
+Receipt Image: {{media url=dataUri contentType=contentType}}
 
 Output the extracted information as a JSON object that conforms to the specified output schema.
 {{{outputSchemaDescription}}}`,
@@ -68,7 +73,7 @@ Output the extracted information as a JSON object that conforms to the specified
 const extractExpenseFromImageFlow = ai.defineFlow(
   {
     name: 'extractExpenseFromImageFlow',
-    inputSchema: z.string(),
+    inputSchema: flowInputSchema,
     outputSchema: ExtractExpenseFromImageOutputSchema,
   },
   async input => {
