@@ -36,6 +36,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // If user has not enrolled in MFA and is not on the setup page, we show a loader
+  // while the redirection happens to avoid showing the dashboard briefly.
+  const mfaEnrolled = user ? multiFactor(user).enrolledFactors.length > 0 : false;
+  if (!mfaEnrolled && typeof window !== 'undefined' && window.location.pathname !== '/mfa-setup') {
+      return (
+        <div className="flex h-screen items-center justify-center bg-background">
+          <Loader className="h-12 w-12" />
+        </div>
+      );
+  }
+
+
   return (
     <div className="flex min-h-screen w-full bg-background">
       <AppSidebar />
