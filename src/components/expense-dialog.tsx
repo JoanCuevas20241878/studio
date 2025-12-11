@@ -34,10 +34,15 @@ import { useToast } from '@/hooks/use-toast';
 import { collection, doc, Timestamp } from 'firebase/firestore';
 import { EXPENSE_CATEGORIES } from '@/lib/constants';
 import type { Expense } from '@/types';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Loader } from './ui/loader';
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useLocale } from '@/hooks/use-locale';
+import { ImageUpload } from './image-upload';
+import { extractExpenseFromImage } from '@/ai/flows/extract-expense-from-image-flow';
+import { Separator } from './ui/separator';
+import { Upload } from 'lucide-react';
+
 
 const getExpenseSchema = (t: any) => {
   return z.object({
@@ -59,15 +64,21 @@ type ExpenseDialogProps = {
 const formatDateForInput = (date: Date | Timestamp | undefined): string => {
   if (!date) return new Date().toISOString().split('T')[0];
   const d = date instanceof Timestamp ? date.toDate() : date;
-  return d.toISOString().split('T')[0];
+  // Adjust for timezone offset before converting to ISO string
+  const timezoneOffset = d.getTimezoneOffset() * 60000;
+  const adjustedDate = new Date(d.getTime() - timezoneOffset);
+  return adjustedDate.toISOString().split('T')[0];
 };
 
 export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps) {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isExtracting, setIsExtracting] = useState(false);
   const { t } = useLocale();
+  const imageUploadRef = useRef<{ openFileDialog: () => void }>(null);
+
 
   const expenseSchema = getExpenseSchema(t);
 
@@ -100,13 +111,39 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
       }
     }
   }, [expense, form, isOpen]);
+  
+  const handleImageUpload = async (file: File) => {
+    setIsExtracting(true);
+    try {
+        const formData = new FormData();
+        formData.append('receipt', file);
+        
+        const extractedData = await extractExpenseFromImage({ receipt: file });
+
+        if (extractedData) {
+            form.setValue('amount', extractedData.amount, { shouldValidate: true });
+            form.setValue('note', extractedData.note, { shouldValidate: true });
+            form.setValue('date', extractedData.date, { shouldValidate: true });
+            if (extractedData.category) {
+              form.setValue('category', extractedData.category, { shouldValidate: true });
+            }
+            toast({ title: t.dataExtractedSuccess });
+        }
+    } catch (error) {
+        console.error("Failed to extract data from image", error);
+        toast({ variant: 'destructive', title: t.dataExtractedError });
+    } finally {
+        setIsExtracting(false);
+    }
+  };
+
 
   const onSubmit = async (values: z.infer<typeof expenseSchema>) => {
     if (!user) {
       toast({ variant: 'destructive', title: t.mustBeLoggedIn });
       return;
     }
-    setIsLoading(true);
+    setIsSubmitting(true);
 
     try {
       const selectedDate = new Date(values.date);
@@ -139,9 +176,11 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
       console.error(error);
       toast({ variant: 'destructive', title: t.anErrorOccurred });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
+
+  const isLoading = isSubmitting || isExtracting;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -152,6 +191,19 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
             {expense ? t.editExpenseDescription : t.addExpenseDescription}
           </DialogDescription>
         </DialogHeader>
+
+        <ImageUpload ref={imageUploadRef} onImageSelect={handleImageUpload} />
+        <Button variant="outline" onClick={() => imageUploadRef.current?.openFileDialog()} disabled={isLoading}>
+          {isExtracting ? <Loader className="mr-2" /> : <Upload className="mr-2" />}
+          {isExtracting ? t.extractingData : t.addFromImage}
+        </Button>
+
+        <div className="flex items-center space-x-2">
+            <Separator className="flex-1" />
+            <span className="text-xs text-muted-foreground">{t.orEnterManually}</span>
+            <Separator className="flex-1" />
+        </div>
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -161,7 +213,7 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
                 <FormItem>
                   <FormLabel>{t.amount}</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="0.00" {...field} />
+                    <Input type="number" placeholder="0.00" {...field} disabled={isLoading} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -173,7 +225,7 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t.category}</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder={t.selectCategory} />
@@ -201,7 +253,7 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
                 <FormItem className="flex flex-col">
                   <FormLabel>{t.date}</FormLabel>
                    <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" {...field} disabled={isLoading} />
                     </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -214,7 +266,7 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
                 <FormItem>
                   <FormLabel>{t.noteOptional}</FormLabel>
                   <FormControl>
-                    <Textarea placeholder={t.notePlaceholder} {...field} value={field.value ?? ''} />
+                    <Textarea placeholder={t.notePlaceholder} {...field} value={field.value ?? ''} disabled={isLoading} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -223,7 +275,7 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={() => setIsOpen(false)}>{t.cancel}</Button>
               <Button type="submit" disabled={isLoading}>
-                 {isLoading && <Loader className="mr-2 h-4 w-4" />}
+                 {isSubmitting && <Loader className="mr-2 h-4 w-4" />}
                 {expense ? t.saveChanges : t.addExpense}
               </Button>
             </DialogFooter>

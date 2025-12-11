@@ -28,7 +28,7 @@
     "recommendations": "Recomendaciones",
     "noRecommendations": "No hay recomendaciones específicas en este momento.",
     "recentExpenses": "Gastos recientes",
-    "recentExpensesDescription": "Una lista de tus gastos más recientes de este mes.",
+    "recentExpensesDescription": "Una lista de tus gastos más recientes.",
     "date": "Fecha",
     "category": "Categoría",
     "note": "Nota",
@@ -54,7 +54,7 @@
     "budgetPositiveError": "El límite del presupuesto debe ser mayor que 0.",
     "editExpense": "Editar gasto",
     "editExpenseDescription": "Actualiza los detalles de tu gasto.",
-    "addExpenseDescription": "Añade un nuevo gasto a tus registros.",
+    "addExpenseDescription": "Añade un nuevo gasto a tus registros, o sube un ticket.",
     "selectCategory": "Selecciona una categoría",
     "pickADate": "Elige una fecha",
     "noteOptional": "Nota (Opcional)",
@@ -124,5 +124,10 @@
     "last3Months": "Últimos 3 Meses",
     "last6Months": "Últimos 6 Meses",
     "last12Months": "Últimos 12 Meses",
-    "custom": "Personalizado"
+    "custom": "Personalizado",
+    "addFromImage": "Añadir desde Imagen",
+    "extractingData": "Extrayendo datos...",
+    "dataExtractedSuccess": "¡Datos extraídos de la imagen con éxito!",
+    "dataExtractedError": "Error al extraer datos de la imagen.",
+    "orEnterManually": "O"
 }

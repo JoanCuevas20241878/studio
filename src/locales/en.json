@@ -28,7 +28,7 @@
     "recommendations": "Recommendations",
     "noRecommendations": "No specific recommendations at this time.",
     "recentExpenses": "Recent Expenses",
-    "recentExpensesDescription": "A list of your most recent expenses this month.",
+    "recentExpensesDescription": "A list of your most recent expenses.",
     "date": "Date",
     "category": "Category",
     "note": "Note",
@@ -54,7 +54,7 @@
     "budgetPositiveError": "Budget limit must be greater than 0.",
     "editExpense": "Edit Expense",
     "editExpenseDescription": "Update the details of your expense.",
-    "addExpenseDescription": "Add a new expense to your records.",
+    "addExpenseDescription": "Add a new expense to your records, or upload a receipt.",
     "selectCategory": "Select a category",
     "pickADate": "Pick a date",
     "noteOptional": "Note (Optional)",
@@ -124,5 +124,10 @@
     "last3Months": "Last 3 Months",
     "last6Months": "Last 6 Months",
     "last12Months": "Last 12 Months",
-    "custom": "Custom"
+    "custom": "Custom",
+    "addFromImage": "Add from Image",
+    "extractingData": "Extracting data...",
+    "dataExtractedSuccess": "Data extracted successfully from image!",
+    "dataExtractedError": "Failed to extract data from image.",
+    "orEnterManually": "OR"
 }
