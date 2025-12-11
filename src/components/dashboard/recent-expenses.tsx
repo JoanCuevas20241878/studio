@@ -20,9 +20,10 @@ import { Badge } from '@/components/ui/badge';
 import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import type { Expense } from '@/types';
 import { EXPENSE_CATEGORIES } from '@/lib/constants';
-import { deleteDoc, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
+import { doc } from 'firebase/firestore';
+import { useFirestore, useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 type RecentExpensesProps = {
   expenses: Expense[];
@@ -31,11 +32,14 @@ type RecentExpensesProps = {
 
 export function RecentExpenses({ expenses, onEdit }: RecentExpensesProps) {
   const { toast } = useToast();
+  const firestore = useFirestore();
+  const { user } = useUser();
   
   const handleDelete = async (expenseId: string) => {
-    if (!expenseId) return;
+    if (!expenseId || !user) return;
     try {
-      await deleteDoc(doc(db, 'expenses', expenseId));
+      const expenseRef = doc(firestore, 'users', user.uid, 'expenses', expenseId);
+      deleteDocumentNonBlocking(expenseRef);
       toast({ title: "Expense deleted successfully." });
     } catch (error) {
       toast({ variant: 'destructive', title: "Error deleting expense." });

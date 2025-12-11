@@ -1,8 +1,8 @@
 'use client';
 
 import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase/config';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth, useUser } from '@/firebase';
+import { useAuth as useAppAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,10 +14,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, User as UserIcon } from 'lucide-react';
+import { LogOut } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+
 
 export function UserNav() {
-  const { userProfile } = useAuth();
+  const { userProfile } = useAppAuth();
+  const auth = useAuth();
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -33,9 +36,6 @@ export function UserNav() {
     return initials.toUpperCase().slice(0, 2);
   };
   
-  // The router import was missing. Adding it here.
-  const { useRouter } = require('next/navigation');
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>

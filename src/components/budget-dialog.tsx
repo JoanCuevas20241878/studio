@@ -21,13 +21,13 @@ import { Input } from '@/components/ui/input';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useAuth } from '@/hooks/use-auth';
+import { useUser, useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
+import { doc } from 'firebase/firestore';
 import type { Budget } from '@/types';
 import { useEffect, useState } from 'react';
 import { Loader } from './ui/loader';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const budgetSchema = z.object({
   limit: z.coerce.number().positive({ message: 'Budget limit must be greater than 0.' }),
@@ -40,7 +40,8 @@ type BudgetDialogProps = {
 };
 
 export function BudgetDialog({ isOpen, setIsOpen, currentBudget }: BudgetDialogProps) {
-  const { user } = useAuth();
+  const { user } = useUser();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
@@ -72,8 +73,8 @@ export function BudgetDialog({ isOpen, setIsOpen, currentBudget }: BudgetDialogP
         limit: values.limit,
       };
 
-      const budgetRef = doc(db, 'budgets', budgetData.id);
-      await setDoc(budgetRef, budgetData);
+      const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budgetData.id);
+      setDocumentNonBlocking(budgetRef, budgetData, { merge: true });
       
       toast({ title: 'Budget set successfully!' });
       setIsOpen(false);

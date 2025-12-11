@@ -12,7 +12,7 @@ import {
   updateProfile,
 } from 'firebase/auth';
 import { doc, setDoc, Timestamp } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase/config';
+import { useAuth, useFirestore } from '@/firebase';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader } from '../ui/loader';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const baseSchema = z.object({
   name: z.string().optional(),
@@ -45,6 +46,8 @@ export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
+  const auth = useAuth();
+  const firestore = useFirestore();
 
   const loginSchema = baseSchema.pick({ email: true, password: true });
 
@@ -78,7 +81,6 @@ export function AuthForm({ mode }: AuthFormProps) {
     setIsLoading(true);
     try {
       if (mode === 'signup') {
-        // We can safely assert name is present due to schema validation
         const signupValues = values as z.infer<typeof signupSchema>;
         const userCredential = await createUserWithEmailAndPassword(
           auth,
@@ -87,13 +89,17 @@ export function AuthForm({ mode }: AuthFormProps) {
         );
         const user = userCredential.user;
         await updateProfile(user, { displayName: signupValues.name });
-        
-        await setDoc(doc(db, 'users', user.uid), {
+
+        const userDocRef = doc(firestore, 'users', user.uid);
+        const userData = {
           uid: user.uid,
+          id: user.uid,
           name: signupValues.name,
           email: signupValues.email,
           createdAt: Timestamp.now(),
-        });
+        };
+
+        setDocumentNonBlocking(userDocRef, userData, { merge: true });
         
         toast({ title: "Account created successfully!" });
         router.push('/dashboard');

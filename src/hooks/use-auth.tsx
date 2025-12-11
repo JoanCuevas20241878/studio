@@ -1,58 +1,64 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, getDoc, Timestamp } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase/config';
+import { doc, onSnapshot, Timestamp } from 'firebase/firestore';
+import { useUser, useFirestore } from '@/firebase';
 import type { UserProfile } from '@/types';
 
 interface AuthContextType {
-  user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
-  user: null,
   userProfile: null,
   loading: true,
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setUser(user);
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-          setUserProfile(userDoc.data() as UserProfile);
+    if (user && firestore) {
+      setProfileLoading(true);
+      const userDocRef = doc(firestore, 'users', user.uid);
+      
+      const unsubscribe = onSnapshot(userDocRef, (doc) => {
+        if (doc.exists()) {
+          setUserProfile(doc.data() as UserProfile);
         } else {
-          // Handle case where user exists in Auth but not Firestore
-          const newUserProfile: UserProfile = {
+          // This case might happen if the user document is not created yet
+          // or was deleted. We can create a temporary profile from auth data.
+           const tempProfile: UserProfile = {
             uid: user.uid,
             email: user.email!,
             name: user.displayName || 'New User',
             createdAt: Timestamp.now(),
           };
-          setUserProfile(newUserProfile);
+          setUserProfile(tempProfile);
         }
-      } else {
-        setUser(null);
+        setProfileLoading(false);
+      }, (error) => {
+        console.error("Error fetching user profile:", error);
         setUserProfile(null);
-      }
-      setLoading(false);
-    });
+        setProfileLoading(false);
+      });
 
-    return () => unsubscribe();
-  }, []);
+      return () => unsubscribe();
+    } else if (!isUserLoading) {
+      // User is not logged in or auth is still loading
+      setUserProfile(null);
+      setProfileLoading(false);
+    }
+  }, [user, isUserLoading, firestore]);
+
+  const loading = isUserLoading || profileLoading;
 
   return (
-    <AuthContext.Provider value={{ user, userProfile, loading }}>
+    <AuthContext.Provider value={{ userProfile, loading }}>
       {children}
     </AuthContext.Provider>
   );

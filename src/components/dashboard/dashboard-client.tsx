@@ -5,12 +5,10 @@ import {
   collection,
   query,
   where,
-  onSnapshot,
   Timestamp,
   orderBy,
 } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
-import { useAuth } from '@/hooks/use-auth';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { Expense, Budget } from '@/types';
 import { generatePersonalizedSavingsTips } from '@/ai/flows/generate-personalized-savings-tips';
 import { Button } from '@/components/ui/button';
@@ -26,11 +24,10 @@ import { exportToCsv } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
 export function DashboardClient() {
-  const { user } = useAuth();
+  const { user } = useUser();
+  const firestore = useFirestore();
   const { toast } = useToast();
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [budget, setBudget] = useState<Budget | null>(null);
-  const [loading, setLoading] = useState(true);
+
   const [aiSuggestions, setAiSuggestions] = useState<{
     alerts: string[];
     recommendations: string[];
@@ -40,6 +37,34 @@ export function DashboardClient() {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
   const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []); // YYYY-MM
+
+  const expensesQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    const startOfMonth = Timestamp.fromDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+    const endOfMonth = Timestamp.fromDate(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59));
+    
+    return query(
+      collection(firestore, 'users', user.uid, 'expenses'),
+      where('date', '>=', startOfMonth),
+      where('date', '<=', endOfMonth),
+      orderBy('date', 'desc')
+    );
+  }, [user, firestore]);
+
+  const { data: expenses, isLoading: expensesLoading } = useCollection<Expense>(expensesQuery);
+
+  const budgetQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(
+      collection(firestore, 'users', user.uid, 'budgets'),
+      where('month', '==', currentMonth)
+    );
+  }, [user, firestore, currentMonth]);
+
+  const { data: budgets, isLoading: budgetLoading } = useCollection<Budget>(budgetQuery);
+  const budget = useMemo(() => (budgets && budgets.length > 0 ? budgets[0] : null), [budgets]);
+  
+  const loading = expensesLoading || budgetLoading;
 
   const handleEditExpense = (expense: Expense) => {
     setEditingExpense(expense);
@@ -51,56 +76,11 @@ export function DashboardClient() {
     setIsExpenseDialogOpen(true);
   };
 
-  useEffect(() => {
-    if (!user) return;
-
-    setLoading(true);
-    const startOfMonth = Timestamp.fromDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
-    const endOfMonth = Timestamp.fromDate(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59));
-
-    const expensesQuery = query(
-      collection(db, 'expenses'),
-      where('userId', '==', user.uid),
-      where('date', '>=', startOfMonth),
-      where('date', '<=', endOfMonth),
-      orderBy('date', 'desc')
-    );
-
-    const budgetQuery = query(
-      collection(db, 'budgets'),
-      where('userId', '==', user.uid),
-      where('month', '==', currentMonth)
-    );
-
-    const unsubscribeExpenses = onSnapshot(expensesQuery, (snapshot) => {
-      const userExpenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Expense[];
-      setExpenses(userExpenses);
-      setLoading(false);
-    }, (error) => {
-      console.error("Error fetching expenses:", error);
-      setLoading(false);
-    });
-
-    const unsubscribeBudget = onSnapshot(budgetQuery, (snapshot) => {
-      if (!snapshot.empty) {
-        setBudget(snapshot.docs[0].data() as Budget);
-      } else {
-        setBudget(null);
-      }
-    }, (error) => {
-      console.error("Error fetching budget:", error);
-    });
-
-    return () => {
-      unsubscribeExpenses();
-      unsubscribeBudget();
-    };
-  }, [user, currentMonth]);
-
   const { totalSpent, remainingBudget, expensesByCategory } = useMemo(() => {
-    const totalSpent = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const safeExpenses = expenses || [];
+    const totalSpent = safeExpenses.reduce((sum, exp) => sum + exp.amount, 0);
     const remainingBudget = budget ? budget.limit - totalSpent : null;
-    const expensesByCategory = expenses.reduce((acc, exp) => {
+    const expensesByCategory = safeExpenses.reduce((acc, exp) => {
       acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
       return acc;
     }, {} as { [key: string]: number });
@@ -110,7 +90,7 @@ export function DashboardClient() {
 
   useEffect(() => {
     const getSuggestions = async () => {
-      if (!user || expenses.length === 0 || !budget) return;
+      if (!user || !expenses || expenses.length === 0 || !budget) return;
       try {
         const result = await generatePersonalizedSavingsTips({
           userId: user.uid,
@@ -131,7 +111,7 @@ export function DashboardClient() {
   }, [user, expenses, budget, totalSpent, expensesByCategory]);
 
   const handleExport = useCallback(() => {
-    if (expenses.length === 0) {
+    if (!expenses || expenses.length === 0) {
       toast({
         title: "No expenses to export",
         description: "There are no expenses in the current month.",
@@ -177,7 +157,7 @@ export function DashboardClient() {
         </div>
         
         <div className="md:col-span-2 lg:col-span-3">
-          <RecentExpenses expenses={expenses} onEdit={handleEditExpense} />
+          <RecentExpenses expenses={expenses || []} onEdit={handleEditExpense} />
         </div>
       </div>
       

@@ -32,16 +32,16 @@ import { CalendarIcon } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useAuth } from '@/hooks/use-auth';
+import { useUser, useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { collection, addDoc, doc, updateDoc, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
+import { collection, doc, Timestamp } from 'firebase/firestore';
 import { EXPENSE_CATEGORIES } from '@/lib/constants';
 import type { Expense } from '@/types';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useEffect, useState } from 'react';
 import { Loader } from './ui/loader';
+import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const expenseSchema = z.object({
   amount: z.coerce.number().positive({ message: 'Amount must be greater than 0.' }),
@@ -57,7 +57,8 @@ type ExpenseDialogProps = {
 };
 
 export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps) {
-  const { user } = useAuth();
+  const { user } = useUser();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -99,14 +100,15 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
         date: Timestamp.fromDate(values.date),
       };
 
-      if (expense) {
+      if (expense && expense.id) {
         // Update existing expense
-        const expenseRef = doc(db, 'expenses', expense.id!);
-        await updateDoc(expenseRef, expenseData);
+        const expenseRef = doc(firestore, 'users', user.uid, 'expenses', expense.id);
+        updateDocumentNonBlocking(expenseRef, expenseData);
         toast({ title: 'Expense updated successfully!' });
       } else {
         // Add new expense
-        await addDoc(collection(db, 'expenses'), expenseData);
+        const expensesColRef = collection(firestore, 'users', user.uid, 'expenses');
+        addDocumentNonBlocking(expensesColRef, expenseData);
         toast({ title: 'Expense added successfully!' });
       }
 
