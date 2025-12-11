@@ -10,27 +10,13 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
-// RÃ©plica del esquema de Zod para Expense, pero sin los objetos de Firebase como Timestamp
-const ExpenseSchema = z.object({
-  id: z.string().optional(),
-  userId: z.string(),
-  amount: z.number(),
-  category: z.enum(['Food', 'Transport', 'Clothing', 'Home', 'Other']),
-  note: z.string(),
-  date: z.string(), // Se espera un string ISO, no un objeto Timestamp.
-});
-
-const BudgetSchema = z.object({
-  id: z.string(),
-  userId: z.string(),
-  month: z.string(),
-  limit: z.number(),
-});
-
 const SavingsTipsInputSchema = z.object({
-  budget: BudgetSchema,
-  expenses: z.array(ExpenseSchema),
-  locale: z.enum(['en', 'es']).default('en'),
+  userId: z.string(),
+  totalSpentThisMonth: z.number(),
+  monthlyBudgetLimit: z.number(),
+  expensesByCategory: z.record(z.string(), z.number()),
+  previousMonthTotalSpent: z.number(),
+  language: z.enum(['en', 'es']).default('en'),
 });
 export type SavingsTipsInput = z.infer<typeof SavingsTipsInputSchema>;
 
@@ -44,7 +30,6 @@ const SavingsTipsOutputSchema = z.object({
 });
 export type SavingsTipsOutput = z.infer<typeof SavingsTipsOutputSchema>;
 
-// La envoltura ya no necesita transformar los datos, ya que se hace en el cliente.
 export async function generatePersonalizedSavingsTips(
   input: SavingsTipsInput
 ): Promise<SavingsTipsOutput> {
@@ -55,17 +40,19 @@ const prompt = ai.definePrompt({
   name: 'personalizedSavingsTipsPrompt',
   input: { schema: SavingsTipsInputSchema },
   output: { schema: SavingsTipsOutputSchema },
-  prompt: `Eres 'SmartExpense AI', un asesor financiero experto. Tu tarea es analizar los datos de gastos de un usuario para el mes actual y proporcionar consejos de ahorro personalizados en el idioma solicitado ({{{locale}}}).
+  prompt: `Eres 'SmartExpense AI', un asesor financiero experto. Tu tarea es analizar los datos de gastos de un usuario para el mes actual y proporcionar consejos de ahorro personalizados en el idioma solicitado ({{{language}}}).
 
   **Contexto:**
-  - Presupuesto del mes: {{{budget.limit}}}
-  - Gastos registrados: {{{JSON anidado expenses}}}
+  - Límite del presupuesto mensual: {{{monthlyBudgetLimit}}}
+  - Total gastado este mes: {{{totalSpentThisMonth}}}
+  - Gastos por categoría: {{{expensesByCategoryString}}}
+  - Total gastado el mes anterior: {{{previousMonthTotalSpent}}}
 
   **Instrucciones:**
-  1.  **Analiza los Gastos:** Compara el gasto total con el lÃ­mite del presupuesto. Identifica las categorÃ­as con mayores gastos. Busca gastos inusuales o elevados.
+  1.  **Analiza los Gastos:** Compara el gasto total con el límite del presupuesto. Identifica las categorías con mayores gastos.
   2.  **Genera Alertas (Campo 'alerts'):**
       - Si el gasto total supera el 85% del presupuesto, crea una alerta.
-      - Si el gasto en una sola categorÃ­a (p. ej., 'Comida') representa mÃ¡s del 50% del gasto total, crea una alerta sobre la concentraciÃ³n de gastos.
+      - Si el gasto en una sola categoría (p. ej., 'Comida') representa mÃ¡s del 50% del gasto total, crea una alerta sobre la concentraciÃ³n de gastos.
       - Si no hay problemas significativos, devuelve un array vacÃ­o.
   3.  **Genera Recomendaciones (Campo 'recommendations'):**
       - Ofrece 2-3 consejos prÃ¡cticos y accionables basados en los hÃ¡bitos de gasto.
@@ -76,7 +63,7 @@ const prompt = ai.definePrompt({
 
   **Formato de Salida:**
   - Responde estrictamente con el objeto JSON definido en el esquema de salida.
-  - El lenguaje de las alertas y recomendaciones debe ser: {{{locale}}}.
+  - El lenguaje de las alertas y recomendaciones debe ser: {{{language}}}.
   - Los consejos deben ser breves y fÃ¡ciles de entender.`,
 });
 
@@ -88,17 +75,22 @@ const personalizedSavingsTipsFlow = ai.defineFlow(
   },
   async input => {
     // ValidaciÃ³n: no generar si no hay datos suficientes
-    if (!input.budget || !input.expenses || input.expenses.length === 0) {
+    if (!input.monthlyBudgetLimit || input.monthlyBudgetLimit === 0) {
+      const message =
+        input.language === 'es'
+          ? 'Establece un presupuesto para obtener consejos de ahorro.'
+          : 'Set a budget to get savings tips.';
       return {
         alerts: [],
-        recommendations: [
-          input.locale === 'es'
-            ? 'AÃ±ade mÃ¡s gastos para obtener un anÃ¡lisis detallado.'
-            : 'Add more expenses to get a detailed analysis.',
-        ],
+        recommendations: [message],
       };
     }
-    const { output } = await prompt(input);
+
+    const expensesByCategoryString = JSON.stringify(input.expensesByCategory);
+    const { output } = await prompt({
+      ...input,
+      expensesByCategoryString,
+    });
     return output!;
   }
 );
