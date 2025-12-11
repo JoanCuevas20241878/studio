@@ -136,6 +136,7 @@
     "foodRecommendation": "Has gastado un {percent}% en comida. Para reducir este gasto, intenta planificar tus comidas semanales y aprovecha ofertas en supermercados.",
     "transportRecommendation": "Tu gasto en transporte es del {percent}%. Considera usar transporte público, bicicleta o compartir coche para ahorrar.",
     "clothingRecommendation": "Un {percent}% de tus gastos es en ropa. Busca ofertas de fin de temporada o explora tiendas de segunda mano.",
+    "homeRecommendation": "Has gastado un {percent}% en artículos para el hogar. Para ahorrar, compara precios en línea y prioriza las compras esenciales.",
     "lowSpendingRecommendation": "¡Vas muy bien! Has gastado menos de la mitad de tu presupuesto. Podrías invertir unos ${amount} y aun así mantener un colchón.",
     "generalRecommendation": "Revisa tus suscripciones mensuales (streaming, apps, etc.). A menudo hay servicios que ya no usas y que puedes cancelar para un ahorro fácil.",
     "goodJobRecommendation": "¡Excelente trabajo! Tus gastos están bien equilibrados este mes. ¡Sigue así!"

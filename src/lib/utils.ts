@@ -115,6 +115,9 @@ export function getLocalSavingsTips(input: SavingsTipsInput): SavingsTipsOutput 
         if (category === 'Clothing' && categoryPercentage > 20) {
             recommendations.push((t.clothingRecommendation || 'Un {percent}% de tus gastos es en ropa. Busca ofertas de fin de temporada o explora tiendas de segunda mano.').replace('{percent}', Math.round(categoryPercentage).toString()));
         }
+        if (category === 'Home' && categoryPercentage > 20) {
+            recommendations.push((t.homeRecommendation || 'You have spent {percent}% on home goods. To save, compare prices online and prioritize essential purchases.').replace('{percent}', Math.round(categoryPercentage).toString()));
+        }
     }
   }
 
