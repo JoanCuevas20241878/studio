@@ -28,12 +28,8 @@ export function DashboardClient() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const { t, locale } = useLocale();
+  const { t } = useLocale();
 
-  const [aiSuggestions, setAiSuggestions] = useState<{
-    alerts: string[];
-    recommendations: string[];
-  } | null>(null);
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
   const [isBudgetDialogOpen, setIsBudgetDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -92,19 +88,18 @@ export function DashboardClient() {
     return { totalSpent, remainingBudget, expensesByCategory };
   }, [expenses, budget]);
 
-  useEffect(() => {
+  const aiSuggestions = useMemo(() => {
     if (budget && expenses) {
-      const suggestions = getLocalSavingsTips({
+      return getLocalSavingsTips({
         totalSpentThisMonth: totalSpent,
         monthlyBudgetLimit: budget.limit,
         expensesByCategory: expensesByCategory,
         t: t,
       });
-      setAiSuggestions(suggestions);
-    } else {
-      setAiSuggestions(null); // Clear suggestions if no budget or expenses
     }
+    return null; // Clear suggestions if no budget or expenses
   }, [totalSpent, budget, expenses, expensesByCategory, t]);
+
 
   const handleExport = useCallback(() => {
     if (!expenses || expenses.length === 0) {
