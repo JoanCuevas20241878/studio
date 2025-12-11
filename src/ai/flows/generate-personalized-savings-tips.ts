@@ -55,13 +55,13 @@ const prompt = ai.definePrompt({
 
 Here's the user's financial information:
 - User ID: {{{userId}}}
-- Total Spent This Month: ${{{totalSpentThisMonth}}}
-- Monthly Budget Limit: ${{{monthlyBudgetLimit}}}
+- Total Spent This Month: {{{totalSpentThisMonth}}}
+- Monthly Budget Limit: {{{monthlyBudgetLimit}}}
 - Expenses By Category:
 {{#each expensesByCategory}}
-  - {{key}}: ${{{this}}}
+  - {{@key}}: {{{this}}}
 {{/each}}
-- Previous Month Total Spent: ${{{previousMonthTotalSpent}}}
+- Previous Month Total Spent: {{{previousMonthTotalSpent}}}
 
 Analyze the data and provide:
 1. A list of alerts if any category exceeds 30% of the budget or if the projected monthly spending exceeds the budget.
@@ -70,7 +70,7 @@ Analyze the data and provide:
 Output the alerts and recommendations as a JSON object.
 
 Remember that the output should conform to this schema:
-{{outputSchemaDescription}}`,
+{{{outputSchemaDescription}}}`,
 });
 
 const generatePersonalizedSavingsTipsFlow = ai.defineFlow(
