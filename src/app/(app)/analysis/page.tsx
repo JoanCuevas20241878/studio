@@ -43,40 +43,34 @@ export default function AnalysisPage() {
   const { data: expenses, isLoading } = useCollection<Expense>(expensesQuery);
 
   const monthlyData = useMemo(() => {
-    if (!expenses) return [];
-
+    const today = new Date();
     const monthNames = Array.from({ length: 12 }, (_, i) =>
       new Date(0, i).toLocaleString(locale, { month: 'short' })
     );
 
-    const dataByMonth = expenses.reduce((acc, expense) => {
-      const month = expense.date.toDate().getMonth();
-      const year = expense.date.toDate().getFullYear();
-      const key = `${year}-${String(month).padStart(2, '0')}`;
-      if (!acc[key]) {
-        acc[key] = { name: `${monthNames[month]} ${year}`, total: 0 };
-      }
-      acc[key].total += expense.amount;
-      return acc;
-    }, {} as { [key: string]: { name: string; total: number } });
-
-    // Create data for the last 6 months, including months with no expenses
-    const lastSixMonths = [];
-    const today = new Date();
+    // Initialize the last 6 months with 0 total
+    const lastSixMonthsData: { [key: string]: { name: string; total: number } } = {};
     for (let i = 5; i >= 0; i--) {
       const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
       const month = d.getMonth();
       const year = d.getFullYear();
       const key = `${year}-${String(month).padStart(2, '0')}`;
-      
-      if (dataByMonth[key]) {
-        lastSixMonths.push(dataByMonth[key]);
-      } else {
-        lastSixMonths.push({ name: `${monthNames[month]} ${year}`, total: 0 });
-      }
+      lastSixMonthsData[key] = { name: `${monthNames[month]} ${String(year).slice(-2)}`, total: 0 };
     }
-    
-    return lastSixMonths;
+
+    if (expenses) {
+      expenses.forEach((expense) => {
+        const date = expense.date.toDate();
+        const month = date.getMonth();
+        const year = date.getFullYear();
+        const key = `${year}-${String(month).padStart(2, '0')}`;
+        if (lastSixMonthsData[key]) {
+          lastSixMonthsData[key].total += expense.amount;
+        }
+      });
+    }
+
+    return Object.values(lastSixMonthsData);
   }, [expenses, locale]);
 
   return (
