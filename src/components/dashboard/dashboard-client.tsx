@@ -28,7 +28,7 @@ export function DashboardClient() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
 
   const [aiSuggestions, setAiSuggestions] = useState<{
     alerts: string[];
@@ -42,13 +42,8 @@ export function DashboardClient() {
 
   const expensesQuery = useMemoFirebase(() => {
     if (!user) return null;
-    const startOfMonth = Timestamp.fromDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
-    const endOfMonth = Timestamp.fromDate(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59));
-    
     return query(
       collection(firestore, 'users', user.uid, 'expenses'),
-      where('date', '>=', startOfMonth),
-      where('date', '<=', endOfMonth),
       orderBy('date', 'desc')
     );
   }, [user, firestore]);
@@ -80,9 +75,17 @@ export function DashboardClient() {
 
   const { totalSpent, remainingBudget, expensesByCategory } = useMemo(() => {
     const safeExpenses = expenses || [];
-    const totalSpent = safeExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    // Filter expenses for the current month for stat cards
+    const currentMonthExpenses = safeExpenses.filter(exp => {
+      const expDate = exp.date.toDate();
+      const currentYear = new Date().getFullYear();
+      const currentMonth = new Date().getMonth();
+      return expDate.getFullYear() === currentYear && expDate.getMonth() === currentMonth;
+    });
+
+    const totalSpent = currentMonthExpenses.reduce((sum, exp) => sum + exp.amount, 0);
     const remainingBudget = budget ? budget.limit - totalSpent : null;
-    const expensesByCategory = safeExpenses.reduce((acc, exp) => {
+    const expensesByCategory = currentMonthExpenses.reduce((acc, exp) => {
       acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
       return acc;
     }, {} as { [key: string]: number });
@@ -100,6 +103,7 @@ export function DashboardClient() {
           monthlyBudgetLimit: budget.limit,
           expensesByCategory: expensesByCategory,
           previousMonthTotalSpent: 0, // Simplified for now
+          language: locale
         });
         setAiSuggestions(result);
       } catch (error) {
@@ -110,7 +114,7 @@ export function DashboardClient() {
     const debounce = setTimeout(getSuggestions, 1000);
     return () => clearTimeout(debounce);
 
-  }, [user, expenses, budget, totalSpent, expensesByCategory]);
+  }, [user, expenses, budget, totalSpent, expensesByCategory, locale]);
 
   const handleExport = useCallback(() => {
     if (!expenses || expenses.length === 0) {

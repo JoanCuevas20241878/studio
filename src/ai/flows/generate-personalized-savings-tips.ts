@@ -20,14 +20,15 @@ const GeneratePersonalizedSavingsTipsInputSchema = z.object({
     .describe('The total amount spent by the user this month.'),
   monthlyBudgetLimit: z
     .number()
-    .describe('The user\u2019s monthly budget limit.'),
+    .describe('The user’s monthly budget limit.'),
   expensesByCategory: z.record(
     z.string(),
     z.number()
-  ).describe('The user\u2019s expenses grouped by category.'),
+  ).describe('The user’s expenses grouped by category.'),
   previousMonthTotalSpent: z
     .number()
     .describe('The total amount spent by the user last month.'),
+  language: z.string().describe('The language for the response (e.g., "en" or "es").'),
 });
 
 export type GeneratePersonalizedSavingsTipsInput = z.infer<typeof GeneratePersonalizedSavingsTipsInputSchema>;
@@ -51,7 +52,9 @@ const prompt = ai.definePrompt({
   name: 'generatePersonalizedSavingsTipsPrompt',
   input: {schema: GeneratePersonalizedSavingsTipsInputSchema},
   output: {schema: GeneratePersonalizedSavingsTipsOutputSchema},
-  prompt: `You are a personal finance advisor. Analyze the user's spending habits and budget to provide personalized savings tips.
+  prompt: `You are a personal finance advisor. Analyze the user's spending habits and budget to provide personalized savings tips in the specified language.
+
+Language for response: {{{language}}}
 
 Here's the user's financial information:
 - User ID: {{{userId}}}
@@ -67,7 +70,7 @@ Analyze the data and provide:
 1. A list of alerts if any category exceeds 30% of the budget or if the projected monthly spending exceeds the budget.
 2. Recommendations on how to adjust spending, comparing with previous months.
 
-Output the alerts and recommendations as a JSON object.
+Output the alerts and recommendations as a JSON object, ensuring all text is in the requested language ({{{language}}}).
 
 Remember that the output should conform to this schema:
 {{{outputSchemaDescription}}}`,
