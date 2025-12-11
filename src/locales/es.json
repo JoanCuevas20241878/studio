@@ -129,5 +129,14 @@
     "extractingData": "Extrayendo datos...",
     "dataExtractedSuccess": "¡Datos extraídos de la imagen con éxito!",
     "dataExtractedError": "Error al extraer datos de la imagen.",
-    "orEnterManually": "O"
+    "orEnterManually": "O",
+    "overBudgetAlert": "Has superado tu presupuesto en un {percent}%.",
+    "budgetWarningAlert": "Has gastado más del {percent}% de tu presupuesto.",
+    "highConcentrationAlert": "Tu gasto principal en \"{category}\" representa un {percent}% del total. Considera diversificar.",
+    "foodRecommendation": "Has gastado un {percent}% en comida. Para reducir este gasto, intenta planificar tus comidas semanales y aprovecha ofertas en supermercados.",
+    "transportRecommendation": "Tu gasto en transporte es del {percent}%. Considera usar transporte público, bicicleta o compartir coche para ahorrar.",
+    "clothingRecommendation": "Un {percent}% de tus gastos es en ropa. Busca ofertas de fin de temporada o explora tiendas de segunda mano.",
+    "lowSpendingRecommendation": "¡Vas muy bien! Has gastado menos de la mitad de tu presupuesto. Podrías invertir unos ${amount} y aun así mantener un colchón.",
+    "generalRecommendation": "Revisa tus suscripciones mensuales (streaming, apps, etc.). A menudo hay servicios que ya no usas y que puedes cancelar para un ahorro fácil.",
+    "goodJobRecommendation": "¡Excelente trabajo! Tus gastos están bien equilibrados este mes. ¡Sigue así!"
 }

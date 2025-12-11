@@ -129,5 +129,14 @@
     "extractingData": "Extracting data...",
     "dataExtractedSuccess": "Data extracted successfully from image!",
     "dataExtractedError": "Failed to extract data from image.",
-    "orEnterManually": "OR"
+    "orEnterManually": "OR",
+    "overBudgetAlert": "You have exceeded your budget by {percent}%.",
+    "budgetWarningAlert": "You have spent over {percent}% of your budget.",
+    "highConcentrationAlert": "Your main spending in \"{category}\" represents {percent}% of the total. Consider diversifying.",
+    "foodRecommendation": "You've spent {percent}% on food. To reduce this, try planning weekly meals and looking for supermarket deals.",
+    "transportRecommendation": "Your transport spending is at {percent}%. Consider using public transport, cycling, or carpooling to save.",
+    "clothingRecommendation": "{percent}% of your expenses are on clothing. Look for end-of-season sales or explore second-hand stores.",
+    "lowSpendingRecommendation": "You're doing great! You've spent less than half your budget. You could invest about ${amount} and still have a cushion.",
+    "generalRecommendation": "Review your monthly subscriptions (streaming, apps, etc.). Often there are services you no longer use that can be canceled for easy savings.",
+    "goodJobRecommendation": "Excellent work! Your expenses are well-balanced this month. Keep it up!"
 }
