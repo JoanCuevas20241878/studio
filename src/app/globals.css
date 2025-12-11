@@ -121,4 +121,3 @@ body {
 .PhoneInputCountrySelect:focus + .PhoneInputCountrySelect-arrow {
   /* Custom focus styles for the (hidden) arrow if needed */
 }
-```
