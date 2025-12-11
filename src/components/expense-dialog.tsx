@@ -34,15 +34,12 @@ import { useToast } from '@/hooks/use-toast';
 import { collection, doc, Timestamp } from 'firebase/firestore';
 import { EXPENSE_CATEGORIES } from '@/lib/constants';
 import type { Expense } from '@/types';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Loader } from './ui/loader';
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useLocale } from '@/hooks/use-locale';
-import { ImageUpload } from './image-upload';
-import { extractExpenseFromImage } from '@/ai/flows/extract-expense-from-image-flow';
-import { Separator } from './ui/separator';
-import { Upload } from 'lucide-react';
-
+import { suggestCategory } from '@/ai/flows/suggest-category-flow';
+import { debounce } from '@/lib/utils';
 
 const getExpenseSchema = (t: any) => {
   return z.object({
@@ -75,10 +72,8 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isExtracting, setIsExtracting] = useState(false);
+  const [isSuggesting, setIsSuggesting] = useState(false);
   const { t } = useLocale();
-  const imageUploadRef = useRef<{ openFileDialog: () => void }>(null);
-
 
   const expenseSchema = getExpenseSchema(t);
 
@@ -111,33 +106,27 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
       }
     }
   }, [expense, form, isOpen]);
-  
-  const handleImageUpload = async (file: File) => {
-    setIsExtracting(true);
-    try {
-        const formData = new FormData();
-        formData.append('receipt', file);
-        
-        const extractedData = await extractExpenseFromImage({ receipt: file });
 
-        if (extractedData) {
-            form.setValue('amount', extractedData.amount, { shouldValidate: true });
-            form.setValue('note', extractedData.note, { shouldValidate: true });
-            form.setValue('date', extractedData.date, { shouldValidate: true });
-            if (extractedData.category) {
-              form.setValue('category', extractedData.category, { shouldValidate: true });
-            }
-            toast({ title: t.dataExtractedSuccess });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const debouncedSuggestCategory = useCallback(
+    debounce(async (note: string) => {
+      if (note.trim().length < 3) return;
+      setIsSuggesting(true);
+      try {
+        const result = await suggestCategory({ note });
+        if (result.category) {
+          form.setValue('category', result.category, { shouldValidate: true });
         }
-    } catch (error) {
-        console.error("Failed to extract data from image", error);
-        toast({ variant: 'destructive', title: t.dataExtractedError });
-    } finally {
-        setIsExtracting(false);
-    }
-  };
-
-
+      } catch (error) {
+        console.error("Failed to suggest category:", error);
+        // Do not show a toast for this, as it's a background helper task
+      } finally {
+        setIsSuggesting(false);
+      }
+    }, 1000), // 1-second debounce
+    [form]
+  );
+  
   const onSubmit = async (values: z.infer<typeof expenseSchema>) => {
     if (!user) {
       toast({ variant: 'destructive', title: t.mustBeLoggedIn });
@@ -180,7 +169,7 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
     }
   };
 
-  const isLoading = isSubmitting || isExtracting;
+  const isLoading = isSubmitting;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -191,18 +180,6 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
             {expense ? t.editExpenseDescription : t.addExpenseDescription}
           </DialogDescription>
         </DialogHeader>
-
-        <ImageUpload ref={imageUploadRef} onImageSelect={handleImageUpload} />
-        <Button variant="outline" onClick={() => imageUploadRef.current?.openFileDialog()} disabled={isLoading}>
-          {isExtracting ? <Loader className="mr-2" /> : <Upload className="mr-2" />}
-          {isExtracting ? t.extractingData : t.addFromImage}
-        </Button>
-
-        <div className="flex items-center space-x-2">
-            <Separator className="flex-1" />
-            <span className="text-xs text-muted-foreground">{t.orEnterManually}</span>
-            <Separator className="flex-1" />
-        </div>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -221,10 +198,35 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
             />
             <FormField
               control={form.control}
+              name="note"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t.note}</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder={t.notePlaceholder} 
+                      {...field}
+                      value={field.value ?? ''} 
+                      disabled={isLoading}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        debouncedSuggestCategory(e.target.value);
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
               name="category"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t.category}</FormLabel>
+                  <FormLabel className="flex items-center">
+                    {t.category}
+                    {isSuggesting && <Loader className="ml-2 h-3 w-3" />}
+                  </FormLabel>
                   <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
                     <FormControl>
                       <SelectTrigger>
@@ -255,19 +257,6 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
                    <FormControl>
                       <Input type="date" {...field} disabled={isLoading} />
                     </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="note"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t.noteOptional}</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder={t.notePlaceholder} {...field} value={field.value ?? ''} disabled={isLoading} />
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
