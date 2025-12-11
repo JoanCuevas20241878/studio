@@ -53,7 +53,7 @@ export function MfaSetupForm({ onVerificationSent }: MfaSetupFormProps) {
     if (!auth || window.recaptchaVerifier) return window.recaptchaVerifier;
     
     window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-      size: 'invisible',
+      size: 'normal', // Changed from 'invisible' to 'normal'
       callback: () => {
         // reCAPTCHA solved, allow signInWithPhoneNumber.
       },
@@ -128,13 +128,13 @@ export function MfaSetupForm({ onVerificationSent }: MfaSetupFormProps) {
               </FormItem>
             )}
           />
+          <div id="recaptcha-container" className="flex justify-center mt-4"></div>
           <Button disabled={isLoading} className="w-full" type="submit">
             {isLoading && <Loader className="mr-2 h-4 w-4" />}
             Send Verification Code
           </Button>
         </form>
       </Form>
-      <div id="recaptcha-container" className="mt-4"></div>
     </>
   );
 }
