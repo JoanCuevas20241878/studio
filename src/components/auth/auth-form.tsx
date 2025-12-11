@@ -29,14 +29,26 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader } from '../ui/loader';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
-const baseSchema = z.object({
-  name: z.string().optional(),
+const loginSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
   password: z
     .string()
     .min(6, { message: 'Password must be at least 6 characters.' }),
-  confirmPassword: z.string().optional(),
 });
+
+const signupSchema = z
+  .object({
+    name: z.string().min(1, { message: 'Name is required.' }),
+    email: z.string().email({ message: 'Please enter a valid email.' }),
+    password: z
+      .string()
+      .min(6, { message: 'Password must be at least 6 characters.' }),
+    confirmPassword: z.string(),
+  })
+  .refine(data => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ['confirmPassword'],
+  });
 
 type AuthFormProps = {
   mode: 'login' | 'signup';
@@ -48,16 +60,6 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [isLoading, setIsLoading] = React.useState(false);
   const auth = useAuth();
   const firestore = useFirestore();
-
-  const loginSchema = baseSchema.pick({ email: true, password: true });
-
-  const signupSchema = baseSchema
-    .pick({ name: true, email: true, password: true, confirmPassword: true })
-    .required({ name: true, confirmPassword: true })
-    .refine(data => data.password === data.confirmPassword, {
-      message: "Passwords don't match",
-      path: ['confirmPassword'],
-    });
 
   const formSchema = mode === 'signup' ? signupSchema : loginSchema;
 
