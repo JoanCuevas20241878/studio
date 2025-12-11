@@ -75,6 +75,7 @@ Output the alerts and recommendations as a JSON object, ensuring all text is in 
 
 Remember that the output should conform to this schema:
 {{{outputSchemaDescription}}}`,
+  model: googleAI.model('gemini-pro'),
 });
 
 const generatePersonalizedSavingsTipsFlow = ai.defineFlow(
