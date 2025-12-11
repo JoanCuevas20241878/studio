@@ -21,7 +21,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         if (!mfaEnrolled) {
           // Check if user is trying to access mfa-setup page
           if (window.location.pathname !== '/mfa-setup') {
-             // router.push('/mfa-setup');
+             router.push('/mfa-setup');
           }
         }
       }

@@ -16,11 +16,12 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader } from '../ui/loader';
-import { useAuth, useUser } from '@/firebase';
+import { useUser } from '@/firebase';
 import {
   ConfirmationResult,
   PhoneAuthProvider,
   PhoneMultiFactorGenerator,
+  multiFactor,
 } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 
@@ -61,8 +62,7 @@ export function MfaVerifyForm({ confirmationResult, phoneNumber }: MfaVerifyForm
 
       const multiFactorAssertion = PhoneMultiFactorGenerator.assertion(credential);
       
-      // This function is not available in the version of firebase sdk used
-      // await multiFactor(user).enroll(multiFactorAssertion, phoneNumber);
+      await multiFactor(user).enroll(multiFactorAssertion, phoneNumber);
 
       toast({ title: 'Success!', description: 'Two-factor authentication has been enabled.' });
       router.push('/dashboard');
