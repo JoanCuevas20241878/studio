@@ -55,16 +55,6 @@ type ExpenseDialogProps = {
   expense?: Expense | null;
 };
 
-// Helper function to format a Date or Timestamp to 'yyyy-MM-dd'
-const formatDateForInput = (date: Date | Timestamp | undefined): string => {
-  if (!date) return new Date().toISOString().split('T')[0];
-  const d = date instanceof Timestamp ? date.toDate() : date;
-  // Adjust for timezone offset before converting to ISO string
-  const timezoneOffset = d.getTimezoneOffset() * 60000;
-  const adjustedDate = new Date(d.getTime() - timezoneOffset);
-  return adjustedDate.toISOString().split('T')[0];
-};
-
 export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps) {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -73,6 +63,13 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
   const { t } = useLocale();
 
   const expenseSchema = getExpenseSchema(t);
+  
+  const formatDateForInput = (date: Date): string => {
+    // Adjust for timezone offset before converting to ISO string
+    const timezoneOffset = date.getTimezoneOffset() * 60000;
+    const adjustedDate = new Date(date.getTime() - timezoneOffset);
+    return adjustedDate.toISOString().split('T')[0];
+  };
 
   const form = useForm<z.infer<typeof expenseSchema>>({
     resolver: zodResolver(expenseSchema),
@@ -87,11 +84,12 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
   useEffect(() => {
     if (isOpen) {
       if (expense) {
+        const expenseDate = expense.date instanceof Timestamp ? expense.date.toDate() : new Date();
         form.reset({
           amount: expense.amount,
           category: expense.category,
           note: expense.note || '',
-          date: formatDateForInput(expense.date),
+          date: formatDateForInput(expenseDate),
         });
       } else {
         form.reset({
