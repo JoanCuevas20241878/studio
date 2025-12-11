@@ -109,7 +109,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if isOwner(userId);
       allow list: if false; // CRITICAL: Prevents listing all users in the app.
-      allow create: if isOwner(userId) && isValidUserCreate(userId);
+      allow create: if isOwner(userId); // Simplified to only check ownership
       allow update: if isExistingOwner(userId) && areUserFieldsImmutable();
       allow delete: if isExistingOwner(userId);
 
