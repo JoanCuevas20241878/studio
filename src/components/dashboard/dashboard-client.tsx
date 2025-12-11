@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   collection,
   query,
@@ -87,7 +87,7 @@ export function DashboardClient() {
 
     return { totalSpent, remainingBudget, expensesByCategory };
   }, [expenses, budget]);
-
+  
   const aiSuggestions = useMemo(() => {
     if (budget && expenses) {
       return getLocalSavingsTips({
@@ -158,17 +158,20 @@ export function DashboardClient() {
         </div>
       </div>
 
-      <div className="flex-1 grid gap-6">
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <StatsCards totalSpent={totalSpent} remainingBudget={remainingBudget} budgetLimit={budget?.limit} />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <StatsCards totalSpent={totalSpent} remainingBudget={remainingBudget} budgetLimit={budget?.limit} />
         </div>
         
-        <div className="grid md:grid-cols-2 gap-6">
-            <CategoryChart data={expensesByCategory} />
-            <AISuggestions suggestions={aiSuggestions} />
+        <div className="lg:col-span-6">
+          <CategoryChart data={expensesByCategory} />
         </div>
         
-        <div className="md:col-span-2 lg:col-span-3">
+        <div className="lg:col-span-6">
+          <AISuggestions suggestions={aiSuggestions} />
+        </div>
+        
+        <div className="lg:col-span-12">
           <RecentExpenses expenses={expenses || []} onEdit={handleEditExpense} />
         </div>
       </div>
