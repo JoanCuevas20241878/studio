@@ -215,11 +215,15 @@ const Sidebar = React.forwardRef<
     return (
       <div
         ref={ref}
-        className="group peer md:block text-sidebar-foreground"
+        className={cn(
+          "group hidden md:block text-sidebar-foreground",
+          className
+        )}
         data-state={state}
         data-collapsible={state === "collapsed" ? collapsible : ""}
         data-variant={variant}
         data-side={side}
+        {...props}
       >
         {/* This is what handles the sidebar gap on desktop */}
         <div
@@ -244,7 +248,6 @@ const Sidebar = React.forwardRef<
               : "group-data-[collapsible=icon]:w-[--sidebar-width-icon] group-data-[side=left]:border-r group-data-[side=right]:border-l",
             className
           )}
-          {...props}
         >
           <div
             data-sidebar="sidebar"
@@ -761,5 +764,3 @@ export {
   SidebarTrigger,
   useSidebar,
 }
-
-    
