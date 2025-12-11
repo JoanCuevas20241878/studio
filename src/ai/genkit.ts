@@ -1,6 +1,6 @@
 import { genkit, type GenkitErrorCode, type GenkitError } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
-import { nextjs } from '@genkit-ai/next';
+import { nextjs } from '@genkit-ai/next/plugin';
 
 // Define un manejador de errores personalizado para capturar y registrar errores de Genkit.
 const handleError = (err: GenkitError) => {
