@@ -10,13 +10,11 @@ import {
 } from 'firebase/firestore';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { Expense, Budget } from '@/types';
-import { generatePersonalizedSavingsTips } from '@/ai/flows/generate-personalized-savings-tips';
 import { Button } from '@/components/ui/button';
 import { Download, Plus, Target } from 'lucide-react';
 import { StatsCards } from './stats-cards';
 import { CategoryChart } from './category-chart';
 import { RecentExpenses } from './recent-expenses';
-import { AISuggestions } from './ai-suggestions';
 import { ExpenseDialog } from '../expense-dialog';
 import { BudgetDialog } from '../budget-dialog';
 import { Loader } from '../ui/loader';
@@ -32,11 +30,6 @@ export function DashboardClient() {
   const { toast } = useToast();
   const { t, locale } = useLocale();
 
-  const [aiSuggestions, setAiSuggestions] = useState<{
-    alerts: string[];
-    recommendations: string[];
-  } | null>(null);
-  const [isAiLoading, setIsAiLoading] = useState(false);
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
   const [isBudgetDialogOpen, setIsBudgetDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -96,34 +89,6 @@ export function DashboardClient() {
     setEditingExpense(null);
     setIsExpenseDialogOpen(true);
   };
-
-  const getSuggestions = async () => {
-    if (!user || !monthlyExpenses || !budget) return;
-    
-    setIsAiLoading(true);
-    setAiSuggestions(null);
-    try {
-      const result = await generatePersonalizedSavingsTips({
-        userId: user.uid,
-        totalSpentThisMonth: totalSpent,
-        monthlyBudgetLimit: budget.limit,
-        expensesByCategory: expensesByCategory,
-        previousMonthTotalSpent: 0, // Simplified for now
-        language: locale
-      });
-      setAiSuggestions(result);
-    } catch (error) {
-      console.error("Error generating AI suggestions:", error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to generate AI suggestions.'
-      })
-    } finally {
-      setIsAiLoading(false);
-    }
-  };
-
 
   const handleExport = useCallback(() => {
     if (!monthlyExpenses || monthlyExpenses.length === 0) {
@@ -187,15 +152,6 @@ export function DashboardClient() {
         
         <div className="md:col-span-2 lg:col-span-1">
           <CategoryChart data={expensesByCategory} />
-        </div>
-
-        <div className="lg:col-span-3">
-          <AISuggestions 
-            suggestions={aiSuggestions} 
-            isLoading={isAiLoading}
-            onGenerate={getSuggestions}
-            canGenerate={!!budget && !!monthlyExpenses && monthlyExpenses.length > 0}
-          />
         </div>
         
         <div className="md:col-span-2 lg:col-span-3">

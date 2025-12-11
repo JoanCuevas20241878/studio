@@ -34,12 +34,10 @@ import { useToast } from '@/hooks/use-toast';
 import { collection, doc, Timestamp } from 'firebase/firestore';
 import { EXPENSE_CATEGORIES } from '@/lib/constants';
 import type { Expense } from '@/types';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { Loader } from './ui/loader';
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useLocale } from '@/hooks/use-locale';
-import { suggestCategory } from '@/ai/flows/suggest-category-flow';
-import { debounce } from '@/lib/utils';
 
 const getExpenseSchema = (t: any) => {
   return z.object({
@@ -72,7 +70,6 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuggesting, setIsSuggesting] = useState(false);
   const { t } = useLocale();
 
   const expenseSchema = getExpenseSchema(t);
@@ -107,26 +104,6 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
     }
   }, [expense, form, isOpen]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const debouncedSuggestCategory = useCallback(
-    debounce(async (note: string) => {
-      if (note.trim().length < 3) return;
-      setIsSuggesting(true);
-      try {
-        const result = await suggestCategory({ note });
-        if (result.category) {
-          form.setValue('category', result.category, { shouldValidate: true });
-        }
-      } catch (error) {
-        console.error("Failed to suggest category:", error);
-        // Do not show a toast for this, as it's a background helper task
-      } finally {
-        setIsSuggesting(false);
-      }
-    }, 1000), // 1-second debounce
-    [form]
-  );
-  
   const onSubmit = async (values: z.infer<typeof expenseSchema>) => {
     if (!user) {
       toast({ variant: 'destructive', title: t.mustBeLoggedIn });
@@ -208,10 +185,6 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
                       {...field}
                       value={field.value ?? ''} 
                       disabled={isLoading}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        debouncedSuggestCategory(e.target.value);
-                      }}
                     />
                   </FormControl>
                   <FormMessage />
@@ -223,10 +196,7 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
               name="category"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center">
-                    {t.category}
-                    {isSuggesting && <Loader className="ml-2 h-3 w-3" />}
-                  </FormLabel>
+                  <FormLabel>{t.category}</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
                     <FormControl>
                       <SelectTrigger>
