@@ -14,14 +14,15 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { zfd } from 'zod-form-data';
 
+export type ExtractExpenseFromImageInput = z.infer<typeof ExtractExpenseFromImageInputSchema>;
 const ExtractExpenseFromImageInputSchema = zfd.formData({
   receipt: zfd.file(z.instanceof(File)),
 });
-export type ExtractExpenseFromImageInput = z.infer<typeof ExtractExpenseFromImageInputSchema>;
 
 
 const SuggestedCategorySchema = z.enum(['Food', 'Transport', 'Clothing', 'Home', 'Other']);
 
+export type ExtractExpenseFromImageOutput = z.infer<typeof ExtractExpenseFromImageOutputSchema>;
 const ExtractExpenseFromImageOutputSchema = z.object({
   amount: z.number().describe('The total amount of the expense.'),
   category: SuggestedCategorySchema.optional().describe('The suggested category for the expense.'),
@@ -31,8 +32,6 @@ const ExtractExpenseFromImageOutputSchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .describe('The date of the expense in YYYY-MM-DD format.'),
 });
-
-export type ExtractExpenseFromImageOutput = z.infer<typeof ExtractExpenseFromImageOutputSchema>;
 
 // Converts a File to a data URI
 async function fileToDataUri(file: File): Promise<string> {
@@ -58,6 +57,7 @@ const prompt = ai.definePrompt({
   name: 'extractExpenseFromImagePrompt',
   input: {schema: flowInputSchema},
   output: {schema: ExtractExpenseFromImageOutputSchema},
+  model: 'gemini-1.5-flash',
   prompt: `You are an expert receipt reader. Analyze the receipt image provided and extract the following information:
 - The total amount of the expense.
 - The date of the expense (in YYYY-MM-DD format). If the year is not present, assume the current year.

@@ -52,6 +52,7 @@ const prompt = ai.definePrompt({
   name: 'generatePersonalizedSavingsTipsPrompt',
   input: {schema: GeneratePersonalizedSavingsTipsInputSchema},
   output: {schema: GeneratePersonalizedSavingsTipsOutputSchema},
+  model: 'gemini-1.5-flash',
   prompt: `You are a personal finance advisor. Analyze the user's spending habits and budget to provide personalized savings tips in the specified language.
 
 Language for response: {{{language}}}
