@@ -103,5 +103,8 @@
     "spendingTrendDescription": "Tu gasto mensual total durante los últimos 6 meses.",
     "totalSpent": "Total Gastado",
     "noDataForChart": "No hay datos suficientes para mostrar el gráfico.",
-    "total": "Total"
+    "total": "Total",
+    "generateTips": "Generar Consejos",
+    "generating": "Generando",
+    "clickGenerateToSeeTips": "Haz clic en el botón para generar consejos de ahorro personalizados."
 }

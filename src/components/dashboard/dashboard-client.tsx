@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   collection,
   query,
@@ -12,7 +12,7 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import type { Expense, Budget } from '@/types';
 import { generatePersonalizedSavingsTips } from '@/ai/flows/generate-personalized-savings-tips';
 import { Button } from '@/components/ui/button';
-import { Download, Plus, Target } from 'lucide-react';
+import { Download, Plus, Target, Lightbulb } from 'lucide-react';
 import { StatsCards } from './stats-cards';
 import { CategoryChart } from './category-chart';
 import { RecentExpenses } from './recent-expenses';
@@ -36,6 +36,7 @@ export function DashboardClient() {
     alerts: string[];
     recommendations: string[];
   } | null>(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
   const [isBudgetDialogOpen, setIsBudgetDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -94,34 +95,33 @@ export function DashboardClient() {
     return { totalSpent, remainingBudget, expensesByCategory };
   }, [expenses, budget]);
 
-  useEffect(() => {
-    const getSuggestions = async () => {
-      if (!user || !expenses || !budget) return;
-      
-      try {
-        const result = await generatePersonalizedSavingsTips({
-          userId: user.uid,
-          totalSpentThisMonth: totalSpent,
-          monthlyBudgetLimit: budget.limit,
-          expensesByCategory: expensesByCategory,
-          previousMonthTotalSpent: 0, // Simplified for now
-          language: locale
-        });
-        setAiSuggestions(result);
-      } catch (error) {
-        console.error("Error generating AI suggestions:", error);
-      }
-    };
+  const getSuggestions = async () => {
+    if (!user || !expenses || !budget) return;
     
-    // Only run if there's a budget and some expenses
-    if (budget && expenses && expenses.length > 0) {
-       const debounce = setTimeout(getSuggestions, 1000);
-       return () => clearTimeout(debounce);
-    } else {
-        setAiSuggestions(null); // Clear suggestions if no budget or expenses
+    setIsAiLoading(true);
+    setAiSuggestions(null);
+    try {
+      const result = await generatePersonalizedSavingsTips({
+        userId: user.uid,
+        totalSpentThisMonth: totalSpent,
+        monthlyBudgetLimit: budget.limit,
+        expensesByCategory: expensesByCategory,
+        previousMonthTotalSpent: 0, // Simplified for now
+        language: locale
+      });
+      setAiSuggestions(result);
+    } catch (error) {
+      console.error("Error generating AI suggestions:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to generate AI suggestions.'
+      })
+    } finally {
+      setIsAiLoading(false);
     }
+  };
 
-  }, [user, expenses, budget, totalSpent, expensesByCategory, locale]);
 
   const handleExport = useCallback(() => {
     if (!expenses || expenses.length === 0) {
@@ -188,7 +188,12 @@ export function DashboardClient() {
         </div>
 
         <div className="lg:col-span-3">
-          <AISuggestions suggestions={aiSuggestions} />
+          <AISuggestions 
+            suggestions={aiSuggestions} 
+            isLoading={isAiLoading}
+            onGenerate={getSuggestions}
+            canGenerate={!!budget && !!expenses && expenses.length > 0}
+          />
         </div>
         
         <div className="md:col-span-2 lg:col-span-3">

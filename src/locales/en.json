@@ -103,5 +103,8 @@
     "spendingTrendDescription": "Your total monthly spending over the last 6 months.",
     "totalSpent": "Total Spent",
     "noDataForChart": "No sufficient data to display the chart.",
-    "total": "Total"
+    "total": "Total",
+    "generateTips": "Generate Tips",
+    "generating": "Generating",
+    "clickGenerateToSeeTips": "Click the button to generate personalized savings tips."
 }
