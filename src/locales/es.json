@@ -94,5 +94,7 @@
     "loginSuccess": "¡Has iniciado sesión con éxito!",
     "authFailed": "Falló la autenticación",
     "noExpensesToExport": "No hay gastos para exportar",
-    "noExpensesThisMonthDesc": "No hay gastos en el mes actual."
+    "noExpensesThisMonthDesc": "No hay gastos en el mes actual.",
+    "setBudgetFirst": "Primero debes establecer un presupuesto",
+    "dateMustBeIn": "La fecha debe ser en"
 }

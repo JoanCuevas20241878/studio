@@ -23,6 +23,8 @@ import { Loader } from '../ui/loader';
 import { exportToCsv } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useLocale } from '@/hooks/use-locale';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
 
 export function DashboardClient() {
   const { user } = useUser();
@@ -42,8 +44,15 @@ export function DashboardClient() {
 
   const expensesQuery = useMemoFirebase(() => {
     if (!user) return null;
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth();
+    const startDate = new Date(currentYear, currentMonth, 1);
+    const endDate = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
+
     return query(
       collection(firestore, 'users', user.uid, 'expenses'),
+      where('date', '>=', Timestamp.fromDate(startDate)),
+      where('date', '<=', Timestamp.fromDate(endDate)),
       orderBy('date', 'desc')
     );
   }, [user, firestore]);
@@ -75,17 +84,9 @@ export function DashboardClient() {
 
   const { totalSpent, remainingBudget, expensesByCategory } = useMemo(() => {
     const safeExpenses = expenses || [];
-    // Filter expenses for the current month for stat cards
-    const currentMonthExpenses = safeExpenses.filter(exp => {
-      const expDate = exp.date.toDate();
-      const currentYear = new Date().getFullYear();
-      const currentMonth = new Date().getMonth();
-      return expDate.getFullYear() === currentYear && expDate.getMonth() === currentMonth;
-    });
-
-    const totalSpent = currentMonthExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const totalSpent = safeExpenses.reduce((sum, exp) => sum + exp.amount, 0);
     const remainingBudget = budget ? budget.limit - totalSpent : null;
-    const expensesByCategory = currentMonthExpenses.reduce((acc, exp) => {
+    const expensesByCategory = safeExpenses.reduce((acc, exp) => {
       acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
       return acc;
     }, {} as { [key: string]: number });
@@ -95,7 +96,8 @@ export function DashboardClient() {
 
   useEffect(() => {
     const getSuggestions = async () => {
-      if (!user || !expenses || expenses.length === 0 || !budget) return;
+      if (!user || !expenses || !budget) return;
+      
       try {
         const result = await generatePersonalizedSavingsTips({
           userId: user.uid,
@@ -111,8 +113,13 @@ export function DashboardClient() {
       }
     };
     
-    const debounce = setTimeout(getSuggestions, 1000);
-    return () => clearTimeout(debounce);
+    // Only run if there's a budget and some expenses
+    if (budget && expenses && expenses.length > 0) {
+       const debounce = setTimeout(getSuggestions, 1000);
+       return () => clearTimeout(debounce);
+    } else {
+        setAiSuggestions(null); // Clear suggestions if no budget or expenses
+    }
 
   }, [user, expenses, budget, totalSpent, expensesByCategory, locale]);
 
@@ -120,7 +127,7 @@ export function DashboardClient() {
     if (!expenses || expenses.length === 0) {
       toast({
         title: t.noExpensesToExport,
-        description: t.noExpensesThisMonth,
+        description: t.noExpensesThisMonthDesc,
       });
       return;
     }
@@ -137,6 +144,12 @@ export function DashboardClient() {
     return <div className="flex flex-1 items-center justify-center"><Loader className="h-10 w-10"/></div>
   }
 
+  const addExpenseButton = (
+    <Button onClick={handleAddExpense} disabled={!budget}>
+      <Plus className="mr-2 h-4 w-4" /> {t.addExpense}
+    </Button>
+  );
+
   return (
     <>
       <div className="flex items-center justify-between mb-6">
@@ -147,7 +160,23 @@ export function DashboardClient() {
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={handleExport}><Download className="mr-2 h-4 w-4" /> {t.exportCsv}</Button>
           <Button variant="outline" onClick={() => setIsBudgetDialogOpen(true)}><Target className="mr-2 h-4 w-4" /> {t.setBudget}</Button>
-          <Button onClick={handleAddExpense}><Plus className="mr-2 h-4 w-4" /> {t.addExpense}</Button>
+          
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {/* We need this span wrapper for the tooltip to work when the button is disabled */}
+                <span tabIndex={!budget ? 0 : -1}> 
+                  {addExpenseButton}
+                </span>
+              </TooltipTrigger>
+              {!budget && (
+                <TooltipContent>
+                  <p>{t.setBudgetFirst}</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+
         </div>
       </div>
 

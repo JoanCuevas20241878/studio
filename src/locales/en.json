@@ -94,5 +94,7 @@
     "loginSuccess": "Logged in successfully!",
     "authFailed": "Authentication Failed",
     "noExpensesToExport": "No expenses to export",
-    "noExpensesThisMonthDesc": "There are no expenses in the current month."
+    "noExpensesThisMonthDesc": "There are no expenses in the current month.",
+    "setBudgetFirst": "You must set a budget first",
+    "dateMustBeIn": "Date must be in"
 }

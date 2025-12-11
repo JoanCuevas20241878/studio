@@ -39,13 +39,26 @@ import { Loader } from './ui/loader';
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useLocale } from '@/hooks/use-locale';
 
-const getExpenseSchema = (t: any) => z.object({
-  amount: z.coerce.number().positive({ message: t.amountPositiveError }),
-  category: z.enum(['Food', 'Transport', 'Clothing', 'Home', 'Other'], { required_error: t.categoryRequiredError }),
-  note: z.string().max(100, t.noteLengthError).optional(),
-  date: z.string().refine((val) => !isNaN(Date.parse(val)), { message: t.dateRequiredError }),
-});
+const getExpenseSchema = (t: any, currentMonthName: string) => {
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
+  return z.object({
+    amount: z.coerce.number().positive({ message: t.amountPositiveError }),
+    category: z.enum(['Food', 'Transport', 'Clothing', 'Home', 'Other'], { required_error: t.categoryRequiredError }),
+    note: z.string().max(100, t.noteLengthError).optional(),
+    date: z.string()
+      .refine((val) => !isNaN(Date.parse(val)), { message: t.dateRequiredError })
+      .refine((val) => {
+        const selectedDate = new Date(val);
+        // Adjust for timezone offset to compare dates correctly
+        const userTimezoneOffset = selectedDate.getTimezoneOffset() * 60000;
+        const adjustedDate = new Date(selectedDate.getTime() + userTimezoneOffset);
+        return adjustedDate >= startOfMonth && adjustedDate <= endOfMonth;
+      }, { message: `${t.dateMustBeIn} ${currentMonthName}` }),
+  });
+};
 
 type ExpenseDialogProps = {
   isOpen: boolean;
@@ -65,12 +78,14 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
 
-  const expenseSchema = getExpenseSchema(t);
+  const currentMonthName = new Date().toLocaleString(locale, { month: 'long' });
+  const expenseSchema = getExpenseSchema(t, currentMonthName);
 
   const form = useForm<z.infer<typeof expenseSchema>>({
     resolver: zodResolver(expenseSchema),
+    mode: 'onChange',
     defaultValues: {
       amount: 0,
       note: '',
@@ -106,12 +121,17 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
     setIsLoading(true);
 
     try {
+      const selectedDate = new Date(values.date);
+      // To ensure the date is stored correctly regardless of user's timezone,
+      // create a "naive" date at midnight UTC corresponding to the user's selected day.
+      const utcDate = new Date(Date.UTC(selectedDate.getUTCFullYear(), selectedDate.getUTCMonth(), selectedDate.getUTCDate()));
+
       const expenseData = {
         userId: user.uid,
         amount: values.amount,
         category: values.category,
         note: values.note || '',
-        date: Timestamp.fromDate(new Date(values.date)),
+        date: Timestamp.fromDate(utcDate),
       };
 
       if (expense && expense.id) {
