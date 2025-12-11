@@ -55,3 +55,70 @@ export function debounce<F extends (...args: any[]) => any>(func: F, waitFor: nu
 
   return debounced as (...args: Parameters<F>) => void;
 }
+
+type SavingsTipsInput = {
+  totalSpentThisMonth: number;
+  monthlyBudgetLimit: number;
+  expensesByCategory: { [key: string]: number };
+  t: any; // Translation function/object
+};
+
+type SavingsTipsOutput = {
+  alerts: string[];
+  recommendations: string[];
+};
+
+export function getLocalSavingsTips(input: SavingsTipsInput): SavingsTipsOutput {
+  const { totalSpentThisMonth, monthlyBudgetLimit, expensesByCategory, t } = input;
+  const alerts: string[] = [];
+  const recommendations: string[] = [];
+
+  if (!monthlyBudgetLimit || monthlyBudgetLimit === 0) {
+    return {
+      alerts: [],
+      recommendations: [t.aiTipsPlaceholder]
+    };
+  }
+
+  // --- Generate Alerts ---
+  const spendingPercentage = (totalSpentThisMonth / monthlyBudgetLimit) * 100;
+  if (spendingPercentage > 100) {
+    alerts.push(t.overBudgetAlert || `Has superado tu presupuesto en un ${Math.round(spendingPercentage - 100)}%.`);
+  } else if (spendingPercentage > 85) {
+    alerts.push(t.budgetWarningAlert || `Has gastado más del 85% de tu presupuesto.`);
+  }
+
+  for (const category in expensesByCategory) {
+    const categorySpendingPercentage = (expensesByCategory[category] / totalSpentThisMonth) * 100;
+    if (categorySpendingPercentage > 50) {
+      alerts.push(t.categoryConcentrationAlert || `Más del 50% de tus gastos están en la categoría '${t[category.toLowerCase()] || category}'.`);
+    }
+  }
+  
+  // --- Generate Recommendations ---
+  const sortedCategories = Object.entries(expensesByCategory).sort(([, a], [, b]) => b - a);
+
+  if (sortedCategories.length > 0) {
+    const topCategory = sortedCategories[0][0];
+    if (topCategory === 'Food') {
+        recommendations.push(t.foodRecommendation || 'Intenta planificar las comidas de la semana o busca descuentos en supermercados para reducir los gastos en comida.');
+    } else if (topCategory === 'Transport') {
+        recommendations.push(t.transportRecommendation || 'Considera usar el transporte público, la bicicleta o compartir coche para ahorrar en transporte.');
+    } else if (topCategory === 'Clothing') {
+        recommendations.push(t.clothingRecommendation || 'Busca ofertas de fin de temporada o considera tiendas de segunda mano para tus compras de ropa.');
+    }
+  }
+
+  if (totalSpentThisMonth < monthlyBudgetLimit / 2) {
+    recommendations.push(t.lowSpendingRecommendation || '¡Vas muy bien con tus gastos! Considera guardar una parte de lo que estás ahorrando.');
+  } else {
+    recommendations.push(t.generalRecommendation || 'Revisa tus suscripciones mensuales. A menudo hay servicios que ya no usas y que puedes cancelar.');
+  }
+  
+  if (recommendations.length === 0 && alerts.length === 0) {
+    recommendations.push(t.goodJobRecommendation || '¡Excelente trabajo! Tus gastos están bien equilibrados. Sigue así.');
+  }
+
+  return { alerts, recommendations };
+}
+

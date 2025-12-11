@@ -10,7 +10,6 @@ import {
 } from 'firebase/firestore';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { Expense, Budget } from '@/types';
-import { generatePersonalizedSavingsTips } from '@/ai/flows/generate-personalized-savings-tips';
 import { Button } from '@/components/ui/button';
 import { Download, Plus, Target } from 'lucide-react';
 import { StatsCards } from './stats-cards';
@@ -20,11 +19,10 @@ import { AISuggestions } from './ai-suggestions';
 import { ExpenseDialog } from '../expense-dialog';
 import { BudgetDialog } from '../budget-dialog';
 import { Loader } from '../ui/loader';
-import { exportToCsv } from '@/lib/utils';
+import { exportToCsv, getLocalSavingsTips } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useLocale } from '@/hooks/use-locale';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-
 
 export function DashboardClient() {
   const { user } = useUser();
@@ -95,36 +93,18 @@ export function DashboardClient() {
   }, [expenses, budget]);
 
   useEffect(() => {
-    const getSuggestions = async () => {
-      if (!user || !expenses || !budget) return;
-      
-      try {
-        const plainExpenses = (expenses || []).map(exp => ({
-            ...exp,
-            date: exp.date.toDate().toISOString(),
-        }));
-
-        const result = await generatePersonalizedSavingsTips({
-            budget: budget,
-            expenses: plainExpenses,
-            locale: locale,
-        });
-
-        setAiSuggestions(result);
-      } catch (error) {
-        console.error("Error generating AI suggestions:", error);
-      }
-    };
-    
-    // Only run if there's a budget and some expenses
-    if (budget && expenses && expenses.length > 0) {
-       const debounce = setTimeout(getSuggestions, 1000);
-       return () => clearTimeout(debounce);
+    if (budget && expenses) {
+      const suggestions = getLocalSavingsTips({
+        totalSpentThisMonth: totalSpent,
+        monthlyBudgetLimit: budget.limit,
+        expensesByCategory: expensesByCategory,
+        t: t,
+      });
+      setAiSuggestions(suggestions);
     } else {
-        setAiSuggestions(null); // Clear suggestions if no budget or expenses
+      setAiSuggestions(null); // Clear suggestions if no budget or expenses
     }
-
-  }, [user, expenses, budget, locale]);
+  }, [totalSpent, budget, expenses, expensesByCategory, t]);
 
   const handleExport = useCallback(() => {
     if (!expenses || expenses.length === 0) {
