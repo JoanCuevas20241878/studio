@@ -9,7 +9,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import type { Budget } from '@/types';
 
 // RÃ©plica del esquema de Zod para Expense, pero sin los objetos de Firebase como Timestamp
 const ExpenseSchema = z.object({

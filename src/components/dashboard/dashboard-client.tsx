@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   collection,
   query,
@@ -10,11 +10,13 @@ import {
 } from 'firebase/firestore';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { Expense, Budget } from '@/types';
+import { generatePersonalizedSavingsTips } from '@/ai/flows/generate-personalized-savings-tips';
 import { Button } from '@/components/ui/button';
 import { Download, Plus, Target } from 'lucide-react';
 import { StatsCards } from './stats-cards';
 import { CategoryChart } from './category-chart';
 import { RecentExpenses } from './recent-expenses';
+import { AISuggestions } from './ai-suggestions';
 import { ExpenseDialog } from '../expense-dialog';
 import { BudgetDialog } from '../budget-dialog';
 import { Loader } from '../ui/loader';
@@ -22,8 +24,6 @@ import { exportToCsv } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useLocale } from '@/hooks/use-locale';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { AISuggestions } from './ai-suggestions';
-import { generatePersonalizedSavingsTips } from '@/ai/flows/generate-personalized-savings-tips';
 
 
 export function DashboardClient() {
@@ -32,23 +32,32 @@ export function DashboardClient() {
   const { toast } = useToast();
   const { t, locale } = useLocale();
 
+  const [aiSuggestions, setAiSuggestions] = useState<{
+    alerts: string[];
+    recommendations: string[];
+  } | null>(null);
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
   const [isBudgetDialogOpen, setIsBudgetDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-  const [suggestions, setSuggestions] = useState(null);
-  const [isGenerating, setIsGenerating] = useState(false);
 
   const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []); // YYYY-MM
 
   const expensesQuery = useMemoFirebase(() => {
     if (!user) return null;
+    const currentYear = new Date().getFullYear();
+    const currentMonthIndex = new Date().getMonth();
+    const startDate = new Date(currentYear, currentMonthIndex, 1);
+    const endDate = new Date(currentYear, currentMonthIndex + 1, 0, 23, 59, 59);
+
     return query(
       collection(firestore, 'users', user.uid, 'expenses'),
+      where('date', '>=', Timestamp.fromDate(startDate)),
+      where('date', '<=', Timestamp.fromDate(endDate)),
       orderBy('date', 'desc')
     );
   }, [user, firestore]);
 
-  const { data: allExpenses, isLoading: expensesLoading } = useCollection<Expense>(expensesQuery);
+  const { data: expenses, isLoading: expensesLoading } = useCollection<Expense>(expensesQuery);
 
   const budgetQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -62,27 +71,6 @@ export function DashboardClient() {
   const budget = useMemo(() => (budgets && budgets.length > 0 ? budgets[0] : null), [budgets]);
   
   const loading = expensesLoading || budgetLoading;
-  
-  const { monthlyExpenses, totalSpent, remainingBudget, expensesByCategory } = useMemo(() => {
-    const safeExpenses = allExpenses || [];
-    const currentYear = new Date().getFullYear();
-    const currentMonthIndex = new Date().getMonth();
-    
-    const monthly = safeExpenses.filter(exp => {
-        const expDate = exp.date.toDate();
-        return expDate.getFullYear() === currentYear && expDate.getMonth() === currentMonthIndex;
-    });
-    
-    const total = monthly.reduce((sum, exp) => sum + exp.amount, 0);
-    const remaining = budget ? budget.limit - total : null;
-    const byCategory = monthly.reduce((acc, exp) => {
-      acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
-      return acc;
-    }, {} as { [key: string]: number });
-
-    return { monthlyExpenses: monthly, totalSpent: total, remainingBudget: remaining, expensesByCategory: byCategory };
-  }, [allExpenses, budget]);
-
 
   const handleEditExpense = (expense: Expense) => {
     setEditingExpense(expense);
@@ -94,47 +82,66 @@ export function DashboardClient() {
     setIsExpenseDialogOpen(true);
   };
 
+  const { totalSpent, remainingBudget, expensesByCategory } = useMemo(() => {
+    const safeExpenses = expenses || [];
+    const totalSpent = safeExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const remainingBudget = budget ? budget.limit - totalSpent : null;
+    const expensesByCategory = safeExpenses.reduce((acc, exp) => {
+      acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
+      return acc;
+    }, {} as { [key: string]: number });
+
+    return { totalSpent, remainingBudget, expensesByCategory };
+  }, [expenses, budget]);
+
+  useEffect(() => {
+    const getSuggestions = async () => {
+      if (!user || !expenses || !budget) return;
+      
+      try {
+        const plainExpenses = (expenses || []).map(exp => ({
+            ...exp,
+            date: exp.date.toDate().toISOString(),
+        }));
+
+        const result = await generatePersonalizedSavingsTips({
+            budget: budget,
+            expenses: plainExpenses,
+            locale: locale,
+        });
+
+        setAiSuggestions(result);
+      } catch (error) {
+        console.error("Error generating AI suggestions:", error);
+      }
+    };
+    
+    // Only run if there's a budget and some expenses
+    if (budget && expenses && expenses.length > 0) {
+       const debounce = setTimeout(getSuggestions, 1000);
+       return () => clearTimeout(debounce);
+    } else {
+        setAiSuggestions(null); // Clear suggestions if no budget or expenses
+    }
+
+  }, [user, expenses, budget, locale]);
+
   const handleExport = useCallback(() => {
-    if (!monthlyExpenses || monthlyExpenses.length === 0) {
+    if (!expenses || expenses.length === 0) {
       toast({
         title: t.noExpensesToExport,
         description: t.noExpensesThisMonthDesc,
       });
       return;
     }
-    const dataToExport = monthlyExpenses.map(e => ({
+    const dataToExport = expenses.map(e => ({
       date: e.date.toDate().toLocaleDateString(),
       category: e.category,
       amount: e.amount,
       note: e.note,
     }));
     exportToCsv(`smart-expense-${currentMonth}.csv`, dataToExport);
-  }, [monthlyExpenses, currentMonth, toast, t]);
-
-  const handleGenerateSuggestions = async () => {
-    setIsGenerating(true);
-    try {
-        const plainExpenses = monthlyExpenses.map(exp => ({
-            ...exp,
-            date: exp.date.toDate().toISOString(),
-        }));
-        const result = await generatePersonalizedSavingsTips({
-            budget: budget!,
-            expenses: plainExpenses,
-            locale: locale,
-        });
-        setSuggestions(result);
-    } catch (error) {
-        console.error(error);
-        toast({
-            variant: 'destructive',
-            title: t.anErrorOccurred,
-            description: "Failed to generate AI suggestions."
-        })
-    } finally {
-        setIsGenerating(false);
-    }
-  };
+  }, [expenses, currentMonth, toast, t]);
 
   if (loading) {
     return <div className="flex flex-1 items-center justify-center"><Loader className="h-10 w-10"/></div>
@@ -145,8 +152,6 @@ export function DashboardClient() {
       <Plus className="mr-2 h-4 w-4" /> {t.addExpense}
     </Button>
   );
-
-  const canGenerate = !!budget && monthlyExpenses && monthlyExpenses.length > 0;
 
   return (
     <>
@@ -185,16 +190,11 @@ export function DashboardClient() {
         
         <div className="grid md:grid-cols-2 gap-6">
             <CategoryChart data={expensesByCategory} />
-            <AISuggestions 
-              suggestions={suggestions} 
-              isLoading={isGenerating} 
-              onGenerate={handleGenerateSuggestions}
-              canGenerate={canGenerate}
-            />
+            <AISuggestions suggestions={aiSuggestions} />
         </div>
         
         <div className="md:col-span-2 lg:col-span-3">
-          <RecentExpenses expenses={monthlyExpenses || []} onEdit={handleEditExpense} />
+          <RecentExpenses expenses={expenses || []} onEdit={handleEditExpense} />
         </div>
       </div>
       
