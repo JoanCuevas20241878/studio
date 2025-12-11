@@ -114,9 +114,13 @@ export function DashboardClient() {
   const handleGenerateSuggestions = async () => {
     setIsGenerating(true);
     try {
+        const plainExpenses = monthlyExpenses.map(exp => ({
+            ...exp,
+            date: exp.date.toDate().toISOString(),
+        }));
         const result = await generatePersonalizedSavingsTips({
             budget: budget!,
-            expenses: monthlyExpenses,
+            expenses: plainExpenses,
             locale: locale,
         });
         setSuggestions(result);

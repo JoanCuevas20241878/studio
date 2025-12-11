@@ -9,8 +9,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import type { Budget, Expense } from '@/types';
-import { Timestamp } from 'firebase/firestore';
+import type { Budget } from '@/types';
 
 // RÃ©plica del esquema de Zod para Expense, pero sin los objetos de Firebase como Timestamp
 const ExpenseSchema = z.object({
@@ -19,7 +18,7 @@ const ExpenseSchema = z.object({
   amount: z.number(),
   category: z.enum(['Food', 'Transport', 'Clothing', 'Home', 'Other']),
   note: z.string(),
-  date: z.string().transform((str) => new Date(str).toISOString()), // Transforma Timestamps a strings ISO
+  date: z.string(), // Se espera un string ISO, no un objeto Timestamp.
 });
 
 const BudgetSchema = z.object({
@@ -46,22 +45,11 @@ const SavingsTipsOutputSchema = z.object({
 });
 export type SavingsTipsOutput = z.infer<typeof SavingsTipsOutputSchema>;
 
-// Envoltura para el flujo que maneja la transformaciÃ³n de datos
-export async function generatePersonalizedSavingsTips(input: {
-  budget: Budget;
-  expenses: Expense[];
-  locale: 'en' | 'es';
-}): Promise<SavingsTipsOutput> {
-  // Transforma los datos de Firebase al formato que espera el esquema de Zod
-  const transformedInput: SavingsTipsInput = {
-    budget: input.budget,
-    expenses: input.expenses.map(exp => ({
-      ...exp,
-      date: (exp.date as unknown as Timestamp).toDate().toISOString(),
-    })),
-    locale: input.locale,
-  };
-  return personalizedSavingsTipsFlow(transformedInput);
+// La envoltura ya no necesita transformar los datos, ya que se hace en el cliente.
+export async function generatePersonalizedSavingsTips(
+  input: SavingsTipsInput
+): Promise<SavingsTipsOutput> {
+  return personalizedSavingsTipsFlow(input);
 }
 
 const prompt = ai.definePrompt({
