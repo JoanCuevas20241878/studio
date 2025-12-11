@@ -26,9 +26,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -37,8 +34,6 @@ import { useToast } from '@/hooks/use-toast';
 import { collection, doc, Timestamp } from 'firebase/firestore';
 import { EXPENSE_CATEGORIES } from '@/lib/constants';
 import type { Expense } from '@/types';
-import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
 import { useEffect, useState } from 'react';
 import { Loader } from './ui/loader';
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -48,7 +43,7 @@ const getExpenseSchema = (t: any) => z.object({
   amount: z.coerce.number().positive({ message: t.amountPositiveError }),
   category: z.enum(['Food', 'Transport', 'Clothing', 'Home', 'Other'], { required_error: t.categoryRequiredError }),
   note: z.string().max(100, t.noteLengthError).optional(),
-  date: z.date({ required_error: t.dateRequiredError }),
+  date: z.string().refine((val) => !isNaN(Date.parse(val)), { message: t.dateRequiredError }),
 });
 
 
@@ -56,6 +51,13 @@ type ExpenseDialogProps = {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
   expense?: Expense | null;
+};
+
+// Helper function to format a Date or Timestamp to 'yyyy-MM-dd'
+const formatDateForInput = (date: Date | Timestamp | undefined): string => {
+  if (!date) return new Date().toISOString().split('T')[0];
+  const d = date instanceof Timestamp ? date.toDate() : date;
+  return d.toISOString().split('T')[0];
 };
 
 export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps) {
@@ -72,7 +74,7 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
     defaultValues: {
       amount: 0,
       note: '',
-      date: new Date(),
+      date: formatDateForInput(new Date()),
     }
   });
 
@@ -83,14 +85,14 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
           amount: expense.amount,
           category: expense.category,
           note: expense.note || '',
-          date: expense.date.toDate(),
+          date: formatDateForInput(expense.date),
         });
       } else {
         form.reset({
           amount: 0,
           category: undefined,
           note: '',
-          date: new Date(),
+          date: formatDateForInput(new Date()),
         });
       }
     }
@@ -109,7 +111,7 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
         amount: values.amount,
         category: values.category,
         note: values.note || '',
-        date: Timestamp.fromDate(values.date),
+        date: Timestamp.fromDate(new Date(values.date)),
       };
 
       if (expense && expense.id) {
@@ -190,37 +192,9 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>{t.date}</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>{t.pickADate}</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                          date > new Date() || date < new Date("1900-01-01")
-                        }
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                   <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
