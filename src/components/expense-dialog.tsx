@@ -64,23 +64,30 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
 
   const form = useForm<z.infer<typeof expenseSchema>>({
     resolver: zodResolver(expenseSchema),
+    defaultValues: {
+      amount: 0,
+      note: '',
+      date: new Date(),
+    }
   });
 
   useEffect(() => {
-    if (expense) {
-      form.reset({
-        amount: expense.amount,
-        category: expense.category,
-        note: expense.note,
-        date: expense.date.toDate(),
-      });
-    } else {
-      form.reset({
-        amount: undefined,
-        category: undefined,
-        note: '',
-        date: new Date(),
-      });
+    if (isOpen) {
+      if (expense) {
+        form.reset({
+          amount: expense.amount,
+          category: expense.category,
+          note: expense.note || '',
+          date: expense.date.toDate(),
+        });
+      } else {
+        form.reset({
+          amount: 0,
+          category: undefined,
+          note: '',
+          date: new Date(),
+        });
+      }
     }
   }, [expense, form, isOpen]);
 
@@ -113,7 +120,6 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
       }
 
       setIsOpen(false);
-      form.reset();
     } catch (error) {
       console.error(error);
       toast({ variant: 'destructive', title: 'An error occurred.' });
@@ -152,7 +158,7 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Category</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a category" />

@@ -48,13 +48,18 @@ export function BudgetDialog({ isOpen, setIsOpen, currentBudget }: BudgetDialogP
 
   const form = useForm<z.infer<typeof budgetSchema>>({
     resolver: zodResolver(budgetSchema),
+    defaultValues: {
+      limit: 0,
+    }
   });
 
   useEffect(() => {
-    if (currentBudget) {
-      form.setValue('limit', currentBudget.limit);
-    } else {
-      form.reset({ limit: undefined });
+    if (isOpen) {
+      if (currentBudget) {
+        form.setValue('limit', currentBudget.limit);
+      } else {
+        form.reset({ limit: 0 });
+      }
     }
   }, [currentBudget, form, isOpen]);
 
