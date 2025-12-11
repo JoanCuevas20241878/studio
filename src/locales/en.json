@@ -96,5 +96,12 @@
     "noExpensesToExport": "No expenses to export",
     "noExpensesThisMonthDesc": "There are no expenses in the current month.",
     "setBudgetFirst": "You must set a budget first",
-    "dateMustBeIn": "Date must be in"
+    "dateMustBeIn": "Date must be in",
+    "analysis": "Analysis",
+    "analysisDescription": "Analyze your spending habits over time.",
+    "spendingTrend": "Spending Trend",
+    "spendingTrendDescription": "Your total monthly spending over the last 6 months.",
+    "totalSpent": "Total Spent",
+    "noDataForChart": "No sufficient data to display the chart.",
+    "total": "Total"
 }

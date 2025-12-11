@@ -96,5 +96,12 @@
     "noExpensesToExport": "No hay gastos para exportar",
     "noExpensesThisMonthDesc": "No hay gastos en el mes actual.",
     "setBudgetFirst": "Primero debes establecer un presupuesto",
-    "dateMustBeIn": "La fecha debe ser en"
+    "dateMustBeIn": "La fecha debe ser en",
+    "analysis": "Análisis",
+    "analysisDescription": "Analiza tus hábitos de gasto a lo largo del tiempo.",
+    "spendingTrend": "Tendencia de Gastos",
+    "spendingTrendDescription": "Tu gasto mensual total durante los últimos 6 meses.",
+    "totalSpent": "Total Gastado",
+    "noDataForChart": "No hay datos suficientes para mostrar el gráfico.",
+    "total": "Total"
 }

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Wallet, Target } from 'lucide-react';
+import { LayoutDashboard, LineChart } from 'lucide-react';
 import {
   SidebarProvider,
   Sidebar,
@@ -18,8 +18,7 @@ import { UserNav } from './user-nav';
 
 const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  // { href: '/expenses', label: 'Expenses', icon: Wallet },
-  // { href: '/budget', label: 'Budget', icon: Target },
+  { href: '/analysis', label: 'Analysis', icon: LineChart },
 ];
 
 export function AppSidebar() {
