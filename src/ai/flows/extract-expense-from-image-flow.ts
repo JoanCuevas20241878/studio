@@ -14,7 +14,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { zfd } from 'zod-form-data';
 
-export const ExtractExpenseFromImageInputSchema = zfd.formData({
+const ExtractExpenseFromImageInputSchema = zfd.formData({
   receipt: zfd.file(z.instanceof(File)),
 });
 export type ExtractExpenseFromImageInput = z.infer<typeof ExtractExpenseFromImageInputSchema>;
@@ -22,7 +22,7 @@ export type ExtractExpenseFromImageInput = z.infer<typeof ExtractExpenseFromImag
 
 const SuggestedCategorySchema = z.enum(['Food', 'Transport', 'Clothing', 'Home', 'Other']);
 
-export const ExtractExpenseFromImageOutputSchema = z.object({
+const ExtractExpenseFromImageOutputSchema = z.object({
   amount: z.number().describe('The total amount of the expense.'),
   category: SuggestedCategorySchema.optional().describe('The suggested category for the expense.'),
   note: z.string().describe('A brief note describing the expense, usually the merchant name.'),
