@@ -232,7 +232,7 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
                 <FormItem>
                   <FormLabel>{t.noteOptional}</FormLabel>
                   <FormControl>
-                    <Textarea placeholder={t.notePlaceholder} {...field} />
+                    <Textarea placeholder={t.notePlaceholder} {...field} value={field.value ?? ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
