@@ -28,27 +28,14 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader } from '../ui/loader';
 
-const formSchema = z
-  .object({
-    name: z.string().optional(),
-    email: z.string().email({ message: 'Please enter a valid email.' }),
-    password: z
-      .string()
-      .min(6, { message: 'Password must be at least 6 characters.' }),
-    confirmPassword: z.string().optional(),
-  })
-  .refine(
-    (data) => {
-      if (data.confirmPassword && data.password !== data.confirmPassword) {
-        return false;
-      }
-      return true;
-    },
-    {
-      message: "Passwords don't match",
-      path: ['confirmPassword'],
-    }
-  );
+const baseSchema = z.object({
+  name: z.string().optional(),
+  email: z.string().email({ message: 'Please enter a valid email.' }),
+  password: z
+    .string()
+    .min(6, { message: 'Password must be at least 6 characters.' }),
+  confirmPassword: z.string().optional(),
+});
 
 type AuthFormProps = {
   mode: 'login' | 'signup';
@@ -59,35 +46,52 @@ export function AuthForm({ mode }: AuthFormProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
 
-  const signupSchema = formSchema.pick({ name: true, email: true, password: true, confirmPassword: true }).required({name: true, confirmPassword: true});
-  const loginSchema = formSchema.pick({ email: true, password: true });
+  const loginSchema = baseSchema.pick({ email: true, password: true });
+
+  const signupSchema = baseSchema
+    .pick({ name: true, email: true, password: true, confirmPassword: true })
+    .required({ name: true, confirmPassword: true })
+    .refine(data => data.password === data.confirmPassword, {
+      message: "Passwords don't match",
+      path: ['confirmPassword'],
+    });
+
+  const formSchema = mode === 'signup' ? signupSchema : loginSchema;
 
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(mode === 'signup' ? signupSchema : loginSchema),
-    defaultValues: {
-      name: '',
-      email: '',
-      password: '',
-      confirmPassword: '',
-    },
+    resolver: zodResolver(formSchema),
+    defaultValues:
+      mode === 'signup'
+        ? {
+            name: '',
+            email: '',
+            password: '',
+            confirmPassword: '',
+          }
+        : {
+            email: '',
+            password: '',
+          },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
       if (mode === 'signup') {
+        // We can safely assert name is present due to schema validation
+        const signupValues = values as z.infer<typeof signupSchema>;
         const userCredential = await createUserWithEmailAndPassword(
           auth,
-          values.email,
-          values.password
+          signupValues.email,
+          signupValues.password
         );
         const user = userCredential.user;
-        await updateProfile(user, { displayName: values.name });
+        await updateProfile(user, { displayName: signupValues.name });
         
         await setDoc(doc(db, 'users', user.uid), {
           uid: user.uid,
-          name: values.name,
-          email: values.email,
+          name: signupValues.name,
+          email: signupValues.email,
           createdAt: Timestamp.now(),
         });
         
@@ -95,7 +99,8 @@ export function AuthForm({ mode }: AuthFormProps) {
         router.push('/dashboard');
 
       } else {
-        await signInWithEmailAndPassword(auth, values.email, values.password);
+        const loginValues = values as z.infer<typeof loginSchema>;
+        await signInWithEmailAndPassword(auth, loginValues.email, loginValues.password);
         toast({ title: "Logged in successfully!" });
         router.push('/dashboard');
       }
