@@ -1,0 +1,178 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user in the SmartExpense AI system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user entity."
+        },
+        "uid": {
+          "type": "string",
+          "description": "Firebase UID for authentication."
+        },
+        "name": {
+          "type": "string",
+          "description": "User's name."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "uid",
+        "name",
+        "email",
+        "createdAt"
+      ]
+    },
+    "Expense": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Expense",
+      "type": "object",
+      "description": "Represents an expense recorded by a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the expense entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Expense)"
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of the expense."
+        },
+        "category": {
+          "type": "string",
+          "description": "The category of the expense (e.g., Food, Transport, Clothing, Home)."
+        },
+        "note": {
+          "type": "string",
+          "description": "Optional note describing the expense."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date of the expense.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "amount",
+        "category",
+        "date"
+      ]
+    },
+    "Budget": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Budget",
+      "type": "object",
+      "description": "Represents a user's monthly budget.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the budget entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Budget)"
+        },
+        "month": {
+          "type": "string",
+          "description": "The month for which the budget is set (YYYY-MM)."
+        },
+        "limit": {
+          "type": "number",
+          "description": "The budget limit for the month."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "month",
+        "limit"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Uses the Firebase UID as the document ID. All user data is scoped under this path, providing clear ownership.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase UID of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/expenses/{expenseId}",
+        "definition": {
+          "entityName": "Expense",
+          "schema": {
+            "$ref": "#/backend/entities/Expense"
+          },
+          "description": "Stores expense data for each user. Expenses are associated with a specific user via the userId in the path. The userId from the path is used to enforce ownership. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase UID of the user who owns the expense."
+            },
+            {
+              "name": "expenseId",
+              "description": "The unique identifier for the expense."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/budgets/{budgetId}",
+        "definition": {
+          "entityName": "Budget",
+          "schema": {
+            "$ref": "#/backend/entities/Budget"
+          },
+          "description": "Stores budget data for each user. Budgets are associated with a specific user via the userId in the path. The userId from the path is used to enforce ownership. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase UID of the user who owns the budget."
+            },
+            {
+              "name": "budgetId",
+              "description": "The unique identifier for the budget."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to securely manage user data, expenses, and budgets for the SmartExpense AI application, adhering to the principles of Authorization Independence, Structural Segregation, and Access Modeling. User data is stored under `/users/{userId}`, expense data is stored under `/users/{userId}/expenses/{expenseId}`, and budget data is stored under `/users/{userId}/budgets/{budgetId}`. This design facilitates path-based ownership for expenses and budgets, ensuring that only the authenticated user has access to their data. This eliminates the need for `get()` calls in security rules because data access is determined by path ownership. Each user's data is segregated under their respective `userId`, enabling simple and secure `list` operations (QAPs) since rules can directly enforce that only the authenticated user can list documents under their path. The expense and budget documents inherit access control via the parent `userId` path segment."
+  }
+}
