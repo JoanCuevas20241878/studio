@@ -4,6 +4,7 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recha
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useMemo } from 'react';
 import { EXPENSE_CATEGORIES } from '@/lib/constants';
+import { useLocale } from '@/hooks/use-locale';
 
 type CategoryChartProps = {
   data: { [key: string]: number };
@@ -24,20 +25,22 @@ const CustomTooltip = ({ active, payload }: any) => {
 };
 
 export function CategoryChart({ data }: CategoryChartProps) {
+  const { t } = useLocale();
+
   const chartData = useMemo(() => {
     const total = Object.values(data).reduce((sum, value) => sum + value, 0);
     if (total === 0) return [];
     return Object.entries(data).map(([name, value]) => ({
-      name: EXPENSE_CATEGORIES.find(c => c.value === name)?.label || name,
+      name: EXPENSE_CATEGORIES(t).find(c => c.value === name)?.label || name,
       value,
       percent: (value / total) * 100,
     })).sort((a, b) => b.value - a.value);
-  }, [data]);
+  }, [data, t]);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Expenses by Category</CardTitle>
+        <CardTitle>{t.expensesByCategory}</CardTitle>
       </CardHeader>
       <CardContent>
         {chartData.length > 0 ? (
@@ -66,8 +69,8 @@ export function CategoryChart({ data }: CategoryChartProps) {
           </div>
         ) : (
           <div className="flex h-[250px] flex-col items-center justify-center text-center">
-            <p className="text-lg font-medium">No expenses yet</p>
-            <p className="text-sm text-muted-foreground">Add some expenses to see your spending breakdown.</p>
+            <p className="text-lg font-medium">{t.noExpensesYet}</p>
+            <p className="text-sm text-muted-foreground">{t.addExpensesToSeeBreakdown}</p>
           </div>
         )}
       </CardContent>

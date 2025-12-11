@@ -28,9 +28,10 @@ import type { Budget } from '@/types';
 import { useEffect, useState } from 'react';
 import { Loader } from './ui/loader';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { useLocale } from '@/hooks/use-locale';
 
-const budgetSchema = z.object({
-  limit: z.coerce.number().positive({ message: 'Budget limit must be greater than 0.' }),
+const getBudgetSchema = (t: any) => z.object({
+  limit: z.coerce.number().positive({ message: t.budgetPositiveError }),
 });
 
 type BudgetDialogProps = {
@@ -44,7 +45,10 @@ export function BudgetDialog({ isOpen, setIsOpen, currentBudget }: BudgetDialogP
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const { t, locale } = useLocale();
   const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+
+  const budgetSchema = getBudgetSchema(t);
 
   const form = useForm<z.infer<typeof budgetSchema>>({
     resolver: zodResolver(budgetSchema),
@@ -65,7 +69,7 @@ export function BudgetDialog({ isOpen, setIsOpen, currentBudget }: BudgetDialogP
 
   const onSubmit = async (values: z.infer<typeof budgetSchema>) => {
     if (!user) {
-      toast({ variant: 'destructive', title: 'You must be logged in.' });
+      toast({ variant: 'destructive', title: t.mustBeLoggedIn });
       return;
     }
     setIsLoading(true);
@@ -81,23 +85,25 @@ export function BudgetDialog({ isOpen, setIsOpen, currentBudget }: BudgetDialogP
       const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budgetData.id);
       setDocumentNonBlocking(budgetRef, budgetData, { merge: true });
       
-      toast({ title: 'Budget set successfully!' });
+      toast({ title: t.budgetSetSuccess });
       setIsOpen(false);
     } catch (error) {
       console.error(error);
-      toast({ variant: 'destructive', title: 'An error occurred.' });
+      toast({ variant: 'destructive', title: t.anErrorOccurred });
     } finally {
         setIsLoading(false);
     }
   };
 
+  const monthName = new Date().toLocaleString(locale, { month: 'long', year: 'numeric' });
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Set Monthly Budget</DialogTitle>
+          <DialogTitle>{t.setMonthlyBudget}</DialogTitle>
           <DialogDescription>
-            Set your spending limit for {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}.
+            {t.setSpendingLimitFor} {monthName}.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -107,7 +113,7 @@ export function BudgetDialog({ isOpen, setIsOpen, currentBudget }: BudgetDialogP
               name="limit"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Budget Limit</FormLabel>
+                  <FormLabel>{t.budgetLimit}</FormLabel>
                   <FormControl>
                     <Input type="number" placeholder="1000.00" {...field} />
                   </FormControl>
@@ -116,10 +122,10 @@ export function BudgetDialog({ isOpen, setIsOpen, currentBudget }: BudgetDialogP
               )}
             />
             <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setIsOpen(false)}>Cancel</Button>
+              <Button type="button" variant="ghost" onClick={() => setIsOpen(false)}>{t.cancel}</Button>
               <Button type="submit" disabled={isLoading}>
                  {isLoading && <Loader className="mr-2 h-4 w-4" />}
-                Set Budget
+                {t.setBudget}
               </Button>
             </DialogFooter>
           </form>

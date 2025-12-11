@@ -4,6 +4,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/hooks/use-auth';
 import { FirebaseClientProvider } from '@/firebase';
+import { LocaleProvider } from '@/hooks/use-locale';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -22,7 +23,7 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased`}>
         <FirebaseClientProvider>
           <AuthProvider>
-            {children}
+            <LocaleProvider>{children}</LocaleProvider>
             <Toaster />
           </AuthProvider>
         </FirebaseClientProvider>

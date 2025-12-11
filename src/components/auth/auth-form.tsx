@@ -30,23 +30,24 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader } from '../ui/loader';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { useLocale } from '@/hooks/use-locale';
 
-const baseSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email.' }),
+const baseSchema = (t: any) => z.object({
+  email: z.string().email({ message: t.emailInvalidError }),
   password: z
     .string()
-    .min(6, { message: 'Password must be at least 6 characters.' }),
+    .min(6, { message: t.passwordLengthError }),
 });
 
-const loginSchema = baseSchema;
+const getLoginSchema = (t: any) => baseSchema(t);
 
-const signupSchema = baseSchema
+const getSignupSchema = (t: any) => baseSchema(t)
   .extend({
-    name: z.string().min(1, { message: 'Name is required.' }),
+    name: z.string().min(1, { message: t.nameRequiredError }),
     confirmPassword: z.string(),
   })
   .refine(data => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
+    message: t.passwordsDontMatchError,
     path: ['confirmPassword'],
   });
 
@@ -69,12 +70,13 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [isLoading, setIsLoading] = React.useState(false);
   const auth = useAuth();
   const firestore = useFirestore();
-
-  const formSchema = mode === 'signup' ? signupSchema : loginSchema;
+  const { t } = useLocale();
+  
+  const formSchema = mode === 'signup' ? getSignupSchema(t) : getLoginSchema(t);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    mode: 'onChange', // Validate fields as user types
+    mode: 'onChange',
     defaultValues:
       mode === 'signup'
         ? {
@@ -100,7 +102,6 @@ export function AuthForm({ mode }: AuthFormProps) {
       const userDoc = await getDoc(userDocRef);
 
       if (!userDoc.exists()) {
-        // New user, create a profile document
         const userData = {
           uid: user.uid,
           id: user.uid,
@@ -108,19 +109,18 @@ export function AuthForm({ mode }: AuthFormProps) {
           email: user.email!,
           createdAt: Timestamp.now(),
         };
-        // Use non-blocking write for performance
         setDocumentNonBlocking(userDocRef, userData, { merge: true });
-        toast({ title: 'Account created successfully with Google!' });
+        toast({ title: t.googleAccountCreated });
       } else {
-        toast({ title: 'Logged in successfully with Google!' });
+        toast({ title: t.googleLoginSuccess });
       }
 
       router.push('/dashboard');
     } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Google Sign-In Failed',
-        description: error.message || 'An unknown error occurred.',
+        title: t.googleSignInFailed,
+        description: error.message || t.unknownError,
       });
     } finally {
       setIsLoading(false);
@@ -132,7 +132,7 @@ export function AuthForm({ mode }: AuthFormProps) {
     setIsLoading(true);
     try {
       if (mode === 'signup') {
-        const signupValues = values as z.infer<typeof signupSchema>;
+        const signupValues = values as z.infer<ReturnType<typeof getSignupSchema>>;
         const userCredential = await createUserWithEmailAndPassword(
           auth,
           signupValues.email,
@@ -152,20 +152,20 @@ export function AuthForm({ mode }: AuthFormProps) {
 
         setDocumentNonBlocking(userDocRef, userData, { merge: true });
         
-        toast({ title: "Account created successfully!" });
+        toast({ title: t.accountCreated });
         router.push('/dashboard');
 
       } else {
-        const loginValues = values as z.infer<typeof loginSchema>;
+        const loginValues = values as z.infer<ReturnType<typeof getLoginSchema>>;
         await signInWithEmailAndPassword(auth, loginValues.email, loginValues.password);
-        toast({ title: "Logged in successfully!" });
+        toast({ title: t.loginSuccess });
         router.push('/dashboard');
       }
     } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Authentication Failed',
-        description: error.message || 'An unknown error occurred.',
+        title: t.authFailed,
+        description: error.message || t.unknownError,
       });
     } finally {
       setIsLoading(false);
@@ -183,9 +183,9 @@ export function AuthForm({ mode }: AuthFormProps) {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name</FormLabel>
+                    <FormLabel>{t.name}</FormLabel>
                     <FormControl>
-                      <Input placeholder="Your Name" {...field} disabled={isLoading} />
+                      <Input placeholder={t.yourName} {...field} disabled={isLoading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -197,7 +197,7 @@ export function AuthForm({ mode }: AuthFormProps) {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>{t.email}</FormLabel>
                   <FormControl>
                     <Input placeholder="name@example.com" {...field} disabled={isLoading} />
                   </FormControl>
@@ -210,7 +210,7 @@ export function AuthForm({ mode }: AuthFormProps) {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel>{t.password}</FormLabel>
                   <FormControl>
                     <Input type="password" placeholder="••••••••" {...field} disabled={isLoading} />
                   </FormControl>
@@ -224,7 +224,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 name="confirmPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Confirm Password</FormLabel>
+                    <FormLabel>{t.confirmPassword}</FormLabel>
                     <FormControl>
                       <Input type="password" placeholder="••••••••" {...field} disabled={isLoading} />
                     </FormControl>
@@ -237,7 +237,7 @@ export function AuthForm({ mode }: AuthFormProps) {
               {isLoading && (
                 <Loader className="mr-2 h-4 w-4" />
               )}
-              {mode === 'signup' ? 'Create account' : 'Sign In'}
+              {mode === 'signup' ? t.createAccount : t.signIn}
             </Button>
           </div>
         </form>
@@ -248,7 +248,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         </div>
         <div className="relative flex justify-center text-xs uppercase">
           <span className="bg-background px-2 text-muted-foreground">
-            Or continue with
+            {t.orContinueWith}
           </span>
         </div>
       </div>
@@ -263,22 +263,22 @@ export function AuthForm({ mode }: AuthFormProps) {
       <p className="px-8 text-center text-sm text-muted-foreground">
         {mode === 'login' ? (
           <>
-            Don&apos;t have an account?{' '}
+            {t.dontHaveAccount}{' '}
             <Link
               href="/signup"
               className="underline underline-offset-4 hover:text-primary"
             >
-              Sign up
+              {t.signUp}
             </Link>
           </>
         ) : (
           <>
-            Already have an account?{' '}
+            {t.alreadyHaveAccount}{' '}
             <Link
               href="/login"
               className="underline underline-offset-4 hover:text-primary"
             >
-              Log in
+              {t.logIn}
             </Link>
           </>
         )}

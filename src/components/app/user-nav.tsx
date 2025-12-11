@@ -1,7 +1,7 @@
 'use client';
 
 import { signOut } from 'firebase/auth';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import { useAuth as useAppAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -13,15 +13,21 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
+  DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu';
-import { LogOut } from 'lucide-react';
+import { LogOut, Globe, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useLocale } from '@/hooks/use-locale';
 
 
 export function UserNav() {
   const { userProfile } = useAppAuth();
   const auth = useAuth();
   const router = useRouter();
+  const { locale, setLocale, t } = useLocale();
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -58,9 +64,28 @@ export function UserNav() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <Globe className="mr-2 h-4 w-4" />
+              <span>{t.language}</span>
+            </DropdownMenuSubTrigger>
+            <DropdownMenuPortal>
+              <DropdownMenuSubContent>
+                <DropdownMenuItem onClick={() => setLocale('en')}>
+                  <span className='w-8'>{locale === 'en' && <Check className="h-4 w-4" />}</span>
+                  <span>English</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLocale('es')}>
+                   <span className='w-8'>{locale === 'es' && <Check className="h-4 w-4" />}</span>
+                  <span>Español</span>
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuPortal>
+          </DropdownMenuSub>
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
+          <span>{t.logOut}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

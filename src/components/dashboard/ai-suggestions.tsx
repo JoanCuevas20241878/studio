@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AlertTriangle, Lightbulb } from 'lucide-react';
+import { useLocale } from '@/hooks/use-locale';
 
 type AISuggestionsProps = {
   suggestions: {
@@ -11,17 +12,18 @@ type AISuggestionsProps = {
 };
 
 export function AISuggestions({ suggestions }: AISuggestionsProps) {
+  const { t } = useLocale();
   if (!suggestions || (suggestions.alerts.length === 0 && suggestions.recommendations.length === 0)) {
     return (
         <Card className="bg-accent/30 border-dashed">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <Lightbulb className="h-5 w-5 text-primary" />
-                    AI Savings Tips
+                    {t.aiSavingsTips}
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <p className="text-muted-foreground">Add some expenses and set a budget to start receiving personalized savings tips from our AI advisor.</p>
+                <p className="text-muted-foreground">{t.aiTipsPlaceholder}</p>
             </CardContent>
         </Card>
     );
@@ -32,14 +34,14 @@ export function AISuggestions({ suggestions }: AISuggestionsProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
             <Lightbulb className="h-5 w-5 text-primary" />
-            AI Savings Tips
+            {t.aiSavingsTips}
         </CardTitle>
-        <CardDescription>Personalized advice to help you save more.</CardDescription>
+        <CardDescription>{t.aiTipsDescription}</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4 md:grid-cols-2">
         <div>
           <h3 className="mb-2 text-lg font-semibold flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-destructive" /> Alerts
+            <AlertTriangle className="h-5 w-5 text-destructive" /> {t.alerts}
           </h3>
           {suggestions.alerts.length > 0 ? (
             <ul className="space-y-2 list-disc pl-5 text-sm">
@@ -48,12 +50,12 @@ export function AISuggestions({ suggestions }: AISuggestionsProps) {
               ))}
             </ul>
           ) : (
-             <p className="text-sm text-muted-foreground">No alerts for now. Keep up the good work!</p>
+             <p className="text-sm text-muted-foreground">{t.noAlerts}</p>
           )}
         </div>
         <div>
           <h3 className="mb-2 text-lg font-semibold flex items-center gap-2">
-            <Lightbulb className="h-5 w-5 text-green-500" /> Recommendations
+            <Lightbulb className="h-5 w-5 text-green-500" /> {t.recommendations}
           </h3>
           {suggestions.recommendations.length > 0 ? (
           <ul className="space-y-2 list-disc pl-5 text-sm">
@@ -62,7 +64,7 @@ export function AISuggestions({ suggestions }: AISuggestionsProps) {
             ))}
           </ul>
            ) : (
-             <p className="text-sm text-muted-foreground">No specific recommendations at this time.</p>
+             <p className="text-sm text-muted-foreground">{t.noRecommendations}</p>
           )}
         </div>
       </CardContent>

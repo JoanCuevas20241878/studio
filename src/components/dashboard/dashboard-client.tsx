@@ -22,11 +22,13 @@ import { BudgetDialog } from '../budget-dialog';
 import { Loader } from '../ui/loader';
 import { exportToCsv } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { useLocale } from '@/hooks/use-locale';
 
 export function DashboardClient() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { t } = useLocale();
 
   const [aiSuggestions, setAiSuggestions] = useState<{
     alerts: string[];
@@ -113,8 +115,8 @@ export function DashboardClient() {
   const handleExport = useCallback(() => {
     if (!expenses || expenses.length === 0) {
       toast({
-        title: "No expenses to export",
-        description: "There are no expenses in the current month.",
+        title: t.noExpensesToExport,
+        description: t.noExpensesThisMonth,
       });
       return;
     }
@@ -125,7 +127,7 @@ export function DashboardClient() {
       note: e.note,
     }));
     exportToCsv(`smart-expense-${currentMonth}.csv`, dataToExport);
-  }, [expenses, currentMonth, toast]);
+  }, [expenses, currentMonth, toast, t]);
 
   if (loading) {
     return <div className="flex flex-1 items-center justify-center"><Loader className="h-10 w-10"/></div>
@@ -135,13 +137,13 @@ export function DashboardClient() {
     <>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back! Here&apos;s your financial overview for the month.</p>
+          <h1 className="text-3xl font-bold">{t.dashboard}</h1>
+          <p className="text-muted-foreground">{t.dashboardDescription}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleExport}><Download className="mr-2 h-4 w-4" /> Export CSV</Button>
-          <Button variant="outline" onClick={() => setIsBudgetDialogOpen(true)}><Target className="mr-2 h-4 w-4" /> Set Budget</Button>
-          <Button onClick={handleAddExpense}><Plus className="mr-2 h-4 w-4" /> Add Expense</Button>
+          <Button variant="outline" onClick={handleExport}><Download className="mr-2 h-4 w-4" /> {t.exportCsv}</Button>
+          <Button variant="outline" onClick={() => setIsBudgetDialogOpen(true)}><Target className="mr-2 h-4 w-4" /> {t.setBudget}</Button>
+          <Button onClick={handleAddExpense}><Plus className="mr-2 h-4 w-4" /> {t.addExpense}</Button>
         </div>
       </div>
 
