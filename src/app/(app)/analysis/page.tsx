@@ -29,7 +29,6 @@ const CustomTooltip = ({ active, payload, label, t }: any) => {
   return null;
 };
 
-
 export default function AnalysisPage() {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -40,12 +39,19 @@ export default function AnalysisPage() {
     compare: { from: startOfMonth(subMonths(new Date(), 1)), to: endOfMonth(subMonths(new Date(), 1)) },
   });
 
-  const allTimeQuery = useMemoFirebase(() => {
+  const expensesQuery = useMemoFirebase(() => {
     if (!user) return null;
-    return query(collection(firestore, 'users', user.uid, 'expenses'), orderBy('date', 'desc'));
-  }, [user, firestore]);
+    const earliestDate = dateRange.current.from < dateRange.compare.from ? dateRange.current.from : dateRange.compare.from;
+    const latestDate = dateRange.current.to > dateRange.compare.to ? dateRange.current.to : dateRange.compare.to;
+    return query(
+      collection(firestore, 'users', user.uid, 'expenses'), 
+      where('date', '>=', Timestamp.fromDate(earliestDate)),
+      where('date', '<=', Timestamp.fromDate(latestDate)),
+      orderBy('date', 'desc')
+    );
+  }, [user, firestore, dateRange]);
 
-  const { data: allExpenses, isLoading } = useCollection<Expense>(allTimeQuery);
+  const { data: allExpenses, isLoading } = useCollection<Expense>(expensesQuery);
 
   const processData = (expenses: Expense[], range: { from: Date, to: Date }) => {
     const filtered = expenses.filter(exp => {

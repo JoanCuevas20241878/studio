@@ -39,24 +39,13 @@ import { Loader } from './ui/loader';
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useLocale } from '@/hooks/use-locale';
 
-const getExpenseSchema = (t: any, currentMonthName: string) => {
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-
+const getExpenseSchema = (t: any) => {
   return z.object({
     amount: z.coerce.number().positive({ message: t.amountPositiveError }),
     category: z.enum(['Food', 'Transport', 'Clothing', 'Home', 'Other'], { required_error: t.categoryRequiredError }),
     note: z.string().max(100, t.noteLengthError).optional(),
     date: z.string()
-      .refine((val) => !isNaN(Date.parse(val)), { message: t.dateRequiredError })
-      .refine((val) => {
-        const selectedDate = new Date(val);
-        // Adjust for timezone offset to compare dates correctly
-        const userTimezoneOffset = selectedDate.getTimezoneOffset() * 60000;
-        const adjustedDate = new Date(selectedDate.getTime() + userTimezoneOffset);
-        return adjustedDate >= startOfMonth && adjustedDate <= endOfMonth;
-      }, { message: `${t.dateMustBeIn} ${currentMonthName}` }),
+      .refine((val) => !isNaN(Date.parse(val)), { message: t.dateRequiredError }),
   });
 };
 
@@ -78,10 +67,9 @@ export function ExpenseDialog({ isOpen, setIsOpen, expense }: ExpenseDialogProps
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const { t, locale } = useLocale();
+  const { t } = useLocale();
 
-  const currentMonthName = new Date().toLocaleString(locale, { month: 'long' });
-  const expenseSchema = getExpenseSchema(t, currentMonthName);
+  const expenseSchema = getExpenseSchema(t);
 
   const form = useForm<z.infer<typeof expenseSchema>>({
     resolver: zodResolver(expenseSchema),

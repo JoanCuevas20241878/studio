@@ -12,7 +12,7 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import type { Expense, Budget } from '@/types';
 import { generatePersonalizedSavingsTips } from '@/ai/flows/generate-personalized-savings-tips';
 import { Button } from '@/components/ui/button';
-import { Download, Plus, Target, Lightbulb } from 'lucide-react';
+import { Download, Plus, Target } from 'lucide-react';
 import { StatsCards } from './stats-cards';
 import { CategoryChart } from './category-chart';
 import { RecentExpenses } from './recent-expenses';
@@ -45,20 +45,13 @@ export function DashboardClient() {
 
   const expensesQuery = useMemoFirebase(() => {
     if (!user) return null;
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth();
-    const startDate = new Date(currentYear, currentMonth, 1);
-    const endDate = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
-
     return query(
       collection(firestore, 'users', user.uid, 'expenses'),
-      where('date', '>=', Timestamp.fromDate(startDate)),
-      where('date', '<=', Timestamp.fromDate(endDate)),
       orderBy('date', 'desc')
     );
   }, [user, firestore]);
 
-  const { data: expenses, isLoading: expensesLoading } = useCollection<Expense>(expensesQuery);
+  const { data: allExpenses, isLoading: expensesLoading } = useCollection<Expense>(expensesQuery);
 
   const budgetQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -72,6 +65,27 @@ export function DashboardClient() {
   const budget = useMemo(() => (budgets && budgets.length > 0 ? budgets[0] : null), [budgets]);
   
   const loading = expensesLoading || budgetLoading;
+  
+  const { monthlyExpenses, totalSpent, remainingBudget, expensesByCategory } = useMemo(() => {
+    const safeExpenses = allExpenses || [];
+    const currentYear = new Date().getFullYear();
+    const currentMonthIndex = new Date().getMonth();
+    
+    const monthly = safeExpenses.filter(exp => {
+        const expDate = exp.date.toDate();
+        return expDate.getFullYear() === currentYear && expDate.getMonth() === currentMonthIndex;
+    });
+    
+    const total = monthly.reduce((sum, exp) => sum + exp.amount, 0);
+    const remaining = budget ? budget.limit - total : null;
+    const byCategory = monthly.reduce((acc, exp) => {
+      acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
+      return acc;
+    }, {} as { [key: string]: number });
+
+    return { monthlyExpenses: monthly, totalSpent: total, remainingBudget: remaining, expensesByCategory: byCategory };
+  }, [allExpenses, budget]);
+
 
   const handleEditExpense = (expense: Expense) => {
     setEditingExpense(expense);
@@ -83,20 +97,8 @@ export function DashboardClient() {
     setIsExpenseDialogOpen(true);
   };
 
-  const { totalSpent, remainingBudget, expensesByCategory } = useMemo(() => {
-    const safeExpenses = expenses || [];
-    const totalSpent = safeExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-    const remainingBudget = budget ? budget.limit - totalSpent : null;
-    const expensesByCategory = safeExpenses.reduce((acc, exp) => {
-      acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
-      return acc;
-    }, {} as { [key: string]: number });
-
-    return { totalSpent, remainingBudget, expensesByCategory };
-  }, [expenses, budget]);
-
   const getSuggestions = async () => {
-    if (!user || !expenses || !budget) return;
+    if (!user || !monthlyExpenses || !budget) return;
     
     setIsAiLoading(true);
     setAiSuggestions(null);
@@ -124,21 +126,21 @@ export function DashboardClient() {
 
 
   const handleExport = useCallback(() => {
-    if (!expenses || expenses.length === 0) {
+    if (!monthlyExpenses || monthlyExpenses.length === 0) {
       toast({
         title: t.noExpensesToExport,
         description: t.noExpensesThisMonthDesc,
       });
       return;
     }
-    const dataToExport = expenses.map(e => ({
+    const dataToExport = monthlyExpenses.map(e => ({
       date: e.date.toDate().toLocaleDateString(),
       category: e.category,
       amount: e.amount,
       note: e.note,
     }));
     exportToCsv(`smart-expense-${currentMonth}.csv`, dataToExport);
-  }, [expenses, currentMonth, toast, t]);
+  }, [monthlyExpenses, currentMonth, toast, t]);
 
   if (loading) {
     return <div className="flex flex-1 items-center justify-center"><Loader className="h-10 w-10"/></div>
@@ -192,12 +194,12 @@ export function DashboardClient() {
             suggestions={aiSuggestions} 
             isLoading={isAiLoading}
             onGenerate={getSuggestions}
-            canGenerate={!!budget && !!expenses && expenses.length > 0}
+            canGenerate={!!budget && !!monthlyExpenses && monthlyExpenses.length > 0}
           />
         </div>
         
         <div className="md:col-span-2 lg:col-span-3">
-          <RecentExpenses expenses={expenses || []} onEdit={handleEditExpense} />
+          <RecentExpenses expenses={monthlyExpenses || []} onEdit={handleEditExpense} />
         </div>
       </div>
       
