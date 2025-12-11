@@ -5,26 +5,14 @@ import { useEffect } from 'react';
 import { useUser } from '@/firebase';
 import { AppSidebar } from '@/components/app/sidebar';
 import { Loader } from '@/components/ui/loader';
-import { multiFactor } from 'firebase/auth';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isUserLoading) {
-      if (!user) {
-        router.replace('/login');
-      } else {
-        // Check for MFA
-        const mfaEnrolled = multiFactor(user).enrolledFactors.length > 0;
-        if (!mfaEnrolled) {
-          // Check if user is trying to access mfa-setup page
-          if (window.location.pathname !== '/mfa-setup') {
-             router.push('/mfa-setup');
-          }
-        }
-      }
+    if (!isUserLoading && !user) {
+      router.replace('/login');
     }
   }, [user, isUserLoading, router]);
 
@@ -35,18 +23,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-
-  // If user has not enrolled in MFA and is not on the setup page, we show a loader
-  // while the redirection happens to avoid showing the dashboard briefly.
-  const mfaEnrolled = user ? multiFactor(user).enrolledFactors.length > 0 : false;
-  if (!mfaEnrolled && typeof window !== 'undefined' && window.location.pathname !== '/mfa-setup') {
-      return (
-        <div className="flex h-screen items-center justify-center bg-background">
-          <Loader className="h-12 w-12" />
-        </div>
-      );
-  }
-
 
   return (
     <div className="flex min-h-screen w-full bg-background">
