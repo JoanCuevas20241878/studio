@@ -1,3 +1,4 @@
+'use client';
 import { genkit, type GenkitErrorCode, type GenkitError } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { nextjs } from '@genkit-ai/next';
