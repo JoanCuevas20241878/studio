@@ -70,3 +70,55 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Styles for react-phone-number-input */
+.PhoneInput {
+  --react-phone-number-input-color--focus: hsl(var(--ring));
+  --react-phone-number-input-border-color: hsl(var(--input));
+  --react-phone-number-input-border-color--focus: hsl(var(--ring));
+  --react-phone-number-input-error-color: hsl(var(--destructive));
+  border: 1px solid var(--react-phone-number-input-border-color);
+  @apply flex items-center w-full rounded-md bg-background text-sm ring-offset-background;
+}
+.PhoneInput:focus-within {
+  border-color: var(--react-phone-number-input-border-color--focus);
+  box-shadow: 0 0 0 2px var(--react-phone-number-input-color--focus);
+}
+.PhoneInput--error {
+  border-color: var(--react-phone-number-input-error-color);
+}
+.PhoneInputInput {
+  @apply h-10 bg-transparent pl-3 pr-3 py-2;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  flex: 1;
+  min-width: 0;
+}
+.PhoneInputCountry {
+  @apply pl-3 pr-1;
+}
+.PhoneInputCountryIcon {
+  box-shadow: none;
+}
+.PhoneInputCountrySelect {
+  /* Hide the default arrow */
+  -moz-appearance: none;
+  -webkit-appearance: none;
+  appearance: none;
+  /* Reset styles */
+  border: none;
+  background-color: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  outline: none;
+  @apply text-base;
+}
+.PhoneInputCountrySelect-arrow {
+  display: none !important;
+}
+.PhoneInputCountrySelect:focus + .PhoneInputCountrySelect-arrow {
+  /* Custom focus styles for the (hidden) arrow if needed */
+}
+```

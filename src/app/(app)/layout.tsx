@@ -5,14 +5,26 @@ import { useEffect } from 'react';
 import { useUser } from '@/firebase';
 import { AppSidebar } from '@/components/app/sidebar';
 import { Loader } from '@/components/ui/loader';
+import { multiFactor } from 'firebase/auth';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.replace('/login');
+    if (!isUserLoading) {
+      if (!user) {
+        router.replace('/login');
+      } else {
+        // Check for MFA
+        const mfaEnrolled = multiFactor(user).enrolledFactors.length > 0;
+        if (!mfaEnrolled) {
+          // Check if user is trying to access mfa-setup page
+          if (window.location.pathname !== '/mfa-setup') {
+             // router.push('/mfa-setup');
+          }
+        }
+      }
     }
   }, [user, isUserLoading, router]);
 
