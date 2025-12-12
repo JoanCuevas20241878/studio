@@ -97,7 +97,7 @@ export function DashboardClient() {
         t: t,
       });
     }
-    return null; // Clear suggestions if no budget or expenses
+    return null;
   }, [totalSpent, budget, expenses, expensesByCategory, t]);
 
 
@@ -163,11 +163,11 @@ export function DashboardClient() {
           <StatsCards totalSpent={totalSpent} remainingBudget={remainingBudget} budgetLimit={budget?.limit} />
         </div>
         
-        <div className="lg:col-span-6">
+        <div className="lg:col-span-8">
           <CategoryChart data={expensesByCategory} />
         </div>
         
-        <div className="lg:col-span-6">
+        <div className="lg:col-span-4">
           <AISuggestions suggestions={aiSuggestions} />
         </div>
         
