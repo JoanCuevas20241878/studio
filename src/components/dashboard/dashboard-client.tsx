@@ -158,20 +158,19 @@ export function DashboardClient() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <StatsCards totalSpent={totalSpent} remainingBudget={remainingBudget} budgetLimit={budget?.limit} />
+      <div className="grid flex-1 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <StatsCards totalSpent={totalSpent} remainingBudget={remainingBudget} budgetLimit={budget?.limit} />
         </div>
-        
-        <div className="lg:col-span-8">
-          <CategoryChart data={expensesByCategory} />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-8">
+            <CategoryChart data={expensesByCategory} />
+          </div>
+          <div className="lg:col-span-4">
+            <AISuggestions suggestions={aiSuggestions} />
+          </div>
         </div>
-        
-        <div className="lg:col-span-4">
-          <AISuggestions suggestions={aiSuggestions} />
-        </div>
-        
-        <div className="lg:col-span-12">
+        <div className="grid grid-cols-1 gap-6">
           <RecentExpenses expenses={expenses || []} onEdit={handleEditExpense} />
         </div>
       </div>
