@@ -1,24 +1,26 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useUser } from '@/firebase';
-import { Loader } from '@/components/ui/loader';
+import { useAuth } from "@/hooks/use-auth";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { Loader } from "@/components/ui/loader";
 
 export default function Home() {
-  const { user, isUserLoading } = useUser();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isUserLoading) {
+    // Only perform redirection once the loading state is resolved.
+    if (!loading) {
       if (user) {
-        router.replace('/dashboard');
+        router.replace("/dashboard");
       } else {
-        router.replace('/login');
+        router.replace("/login");
       }
     }
-  }, [user, isUserLoading, router]);
+  }, [user, loading, router]);
 
+  // Render a loading state while the authentication check and redirection are in progress.
   return (
     <div className="flex h-screen w-full items-center justify-center bg-background">
       <Loader className="h-12 w-12" />
