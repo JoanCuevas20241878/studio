@@ -131,7 +131,7 @@ export function DashboardClient() {
   return (
     <>
       <div className="flex flex-col p-4 md:p-6 lg:p-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-6 flex items-center justify-between">
             <div>
             <h1 className="text-3xl font-bold">{t.dashboard}</h1>
             <p className="text-muted-foreground">{t.dashboardDescription}</p>
