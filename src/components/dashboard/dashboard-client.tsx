@@ -130,48 +130,50 @@ export function DashboardClient() {
 
   return (
     <>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">{t.dashboard}</h1>
-          <p className="text-muted-foreground">{t.dashboardDescription}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleExport}><Download className="mr-2 h-4 w-4" /> {t.exportCsv}</Button>
-          <Button variant="outline" onClick={() => setIsBudgetDialogOpen(true)}><Target className="mr-2 h-4 w-4" /> {t.setBudget}</Button>
-          
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                {/* We need this span wrapper for the tooltip to work when the button is disabled */}
-                <span tabIndex={!budget ? 0 : -1}> 
-                  {addExpenseButton}
-                </span>
-              </TooltipTrigger>
-              {!budget && (
-                <TooltipContent>
-                  <p>{t.setBudgetFirst}</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
+      <div className="flex flex-col flex-1 p-4 md:p-6 lg:p-8">
+        <div className="flex items-center justify-between mb-6">
+            <div>
+            <h1 className="text-3xl font-bold">{t.dashboard}</h1>
+            <p className="text-muted-foreground">{t.dashboardDescription}</p>
+            </div>
+            <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={handleExport}><Download className="mr-2 h-4 w-4" /> {t.exportCsv}</Button>
+            <Button variant="outline" onClick={() => setIsBudgetDialogOpen(true)}><Target className="mr-2 h-4 w-4" /> {t.setBudget}</Button>
+            
+            <TooltipProvider>
+                <Tooltip>
+                <TooltipTrigger asChild>
+                    {/* We need this span wrapper for the tooltip to work when the button is disabled */}
+                    <span tabIndex={!budget ? 0 : -1}> 
+                    {addExpenseButton}
+                    </span>
+                </TooltipTrigger>
+                {!budget && (
+                    <TooltipContent>
+                    <p>{t.setBudgetFirst}</p>
+                    </TooltipContent>
+                )}
+                </Tooltip>
+            </TooltipProvider>
 
+            </div>
         </div>
-      </div>
 
-      <div className="grid flex-1 gap-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <StatsCards totalSpent={totalSpent} remainingBudget={remainingBudget} budgetLimit={budget?.limit} />
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-8">
-            <CategoryChart data={expensesByCategory} />
-          </div>
-          <div className="lg:col-span-4">
-            <AISuggestions suggestions={aiSuggestions} />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 gap-6">
-          <RecentExpenses expenses={expenses || []} onEdit={handleEditExpense} />
+        <div className="grid flex-1 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <StatsCards totalSpent={totalSpent} remainingBudget={remainingBudget} budgetLimit={budget?.limit} />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-8">
+                <CategoryChart data={expensesByCategory} />
+            </div>
+            <div className="lg:col-span-4">
+                <AISuggestions suggestions={aiSuggestions} />
+            </div>
+            </div>
+            <div className="grid grid-cols-1 gap-6">
+            <RecentExpenses expenses={expenses || []} onEdit={handleEditExpense} />
+            </div>
         </div>
       </div>
       
