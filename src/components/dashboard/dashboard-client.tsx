@@ -130,7 +130,7 @@ export function DashboardClient() {
 
   return (
     <>
-      <div className="flex flex-col flex-1 p-4 md:p-6 lg:p-8">
+      <div className="flex flex-col p-4 md:p-6 lg:p-8">
         <div className="flex items-center justify-between mb-6">
             <div>
             <h1 className="text-3xl font-bold">{t.dashboard}</h1>
