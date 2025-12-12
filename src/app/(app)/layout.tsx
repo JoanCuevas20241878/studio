@@ -1,33 +1,19 @@
-'use client';
+import { AppSidebar as Sidebar } from "@/components/app/sidebar";
 
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { useUser } from '@/firebase';
-import { AppSidebar } from '@/components/app/sidebar';
-import { Loader } from '@/components/ui/loader';
-
-export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user, isUserLoading } = useUser();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.replace('/login');
-    }
-  }, [user, isUserLoading, router]);
-
-  if (isUserLoading || !user) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <Loader className="h-12 w-12" />
-      </div>
-    );
-  }
-
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <div className="flex min-h-screen w-full bg-background">
-      <AppSidebar />
-      <main className="flex-1 overflow-auto">
+    <div className="flex min-h-screen">
+      {/* Sidebar */}
+      <aside className="w-64 border-r border-border bg-background">
+        <Sidebar />
+      </aside>
+
+      {/* Contenido */}
+      <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
         {children}
       </main>
     </div>

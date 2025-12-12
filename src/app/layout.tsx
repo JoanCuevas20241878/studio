@@ -1,31 +1,24 @@
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+'use client';
 import './globals.css';
-import { Toaster } from '@/components/ui/toaster';
+import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/hooks/use-auth';
-import { FirebaseClientProvider } from '@/firebase';
+import { Toaster } from '@/components/ui/toaster';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { LocaleProvider } from '@/hooks/use-locale';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const inter = Inter({ subsets: ['latin'] });
 
-export const metadata: Metadata = {
-  title: 'SmartExpense AI',
-  description: 'AI-powered personal expense management system',
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.variable} font-sans antialiased`}>
+    <html lang="en">
+      <body className={inter.className}>
         <FirebaseClientProvider>
-          <AuthProvider>
-            <LocaleProvider>{children}</LocaleProvider>
-            <Toaster />
-          </AuthProvider>
+          <LocaleProvider>
+            <AuthProvider>
+              {children}
+              <Toaster />
+            </AuthProvider>
+          </LocaleProvider>
         </FirebaseClientProvider>
       </body>
     </html>
